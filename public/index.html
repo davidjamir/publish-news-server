@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Publish Server News</title>
+    <style>
+      :root {
+        --text: #111;
+        --muted: #555;
+        --border: #e6e6e6;
+        --bg: #fff;
+        --bg-soft: #fafafa;
+        --get: #0066cc; /* blue */
+        --post: #c01818; /* red */
+      }
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica,
+          Arial;
+        color: var(--text);
+        background: var(--bg);
+        margin: 28px;
+        line-height: 1.55;
+      }
+      .wrap {
+        max-width: 960px;
+        margin: 0 auto;
+      }
+      header {
+        padding: 18px 18px 14px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--bg-soft);
+      }
+      h1 {
+        margin: 0 0 6px;
+        font-size: 26px;
+        letter-spacing: -0.2px;
+      }
+      .sub {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      section {
+        margin-top: 18px;
+      }
+      h2 {
+        margin: 0 0 10px;
+        font-size: 18px;
+      }
+      .table {
+        width: 100%;
+        border-collapse: collapse;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+        background: #fff;
+      }
+      .table th,
+      .table td {
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+        text-align: left;
+        font-size: 14px;
+      }
+      .table th {
+        background: var(--bg-soft);
+        font-weight: 600;
+      }
+      .table tr:last-child td {
+        border-bottom: none;
+      }
+      .method {
+        font-weight: 700;
+        display: inline-block;
+        min-width: 54px;
+      }
+      .get {
+        color: var(--get);
+      }
+      .post {
+        color: var(--post);
+      }
+      .delete {
+        color: var(--text);
+      }
+      a {
+        color: var(--text);
+        text-decoration: underline;
+      }
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          monospace;
+        font-size: 12px;
+        background: #f4f4f4;
+        padding: 2px 6px;
+        border-radius: 6px;
+      }
+      .note {
+        margin-top: 14px;
+        padding: 12px 14px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--bg-soft);
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .nowrap {
+        white-space: nowrap;
+      }
+
+      /* API link (blink on hover / click) */
+      a.api-link {
+        color: var(--text);
+        text-decoration: underline;
+        text-decoration-thickness: 1px;
+        text-underline-offset: 2px;
+        transition: color 140ms ease, background-color 140ms ease;
+        border-radius: 6px;
+        padding: 2px 4px;
+      }
+
+      a.api-link:hover {
+        color: var(--get); /* blue */
+        background: rgba(0, 102, 204, 0.08);
+      }
+
+      a.api-link:active {
+        color: var(--post); /* red */
+        background: rgba(192, 24, 24, 0.1);
+      }
+
+      a.api-link:focus-visible {
+        outline: 2px solid rgba(0, 102, 204, 0.35);
+        outline-offset: 2px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Publish Server News</h1>
+        <p class="sub">
+          Internal endpoints for ingesting RSS items, managing the publish
+          queue, and sending drafts to Blogger via email.
+        </p>
+      </header>
+
+      <section>
+        <h2>API Endpoints</h2>
+
+        <table class="table" aria-label="API Endpoints">
+          <thead>
+            <tr>
+              <th class="nowrap">Method</th>
+              <th>Endpoint</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="method get">GET</span></td>
+              <td>
+                <a
+                  class="api-link"
+                  href="/api/batch"
+                  target="_blank"
+                  rel="noopener"
+                  >/api/batch</a
+                >
+              </td>
+              <td>
+                Batch retrieval.<br />
+                <b>Details</b>: requires <code>batchId</code>.<br />
+                <b>List</b>: optional <code>limit</code> (default: 10, min:1,
+                max: 50).
+              </td>
+            </tr>
+            <tr>
+              <td><span class="method delete">DELETE</span></td>
+              <td>
+                <a
+                  class="api-link"
+                  href="/api/batch"
+                  target="_blank"
+                  rel="noopener"
+                  >/api/batch</a
+                >
+              </td>
+              <td>
+                Delete batches.<br />
+                <b>Single</b>: requires <code>?batchId=xxx</code>.<br />
+                <b>Clear all</b>: set <code>clearAll</code> equal
+                <code>1</code>, <code>true</code>, <code>yes</code>, or
+                <code>y</code> (e.g., <code>?clearAll=1</code>).
+              </td>
+            </tr>
+
+            <!-- news -->
+            <tr>
+              <td><span class="method get">GET</span></td>
+              <td>
+                <a
+                  class="api-link"
+                  href="/api/news"
+                  target="_blank"
+                  rel="noopener"
+                  >/api/news</a
+                >
+              </td>
+              <td>
+                News items store.<br />
+                <b>Details</b>: requires <code>newsId</code>.<br />
+                <b>List</b>: optional <code>limit</code> (default: 10, min:1,
+                max: 50).
+              </td>
+            </tr>
+            <tr>
+              <td><span class="method delete">DELETE</span></td>
+              <td>
+                <a
+                  class="api-link"
+                  href="/api/news"
+                  target="_blank"
+                  rel="noopener"
+                  >/api/news</a
+                >
+              </td>
+              <td>
+                Delete news.<br />
+                <b>Single</b>: requires <code>?newsId=xxx</code>.<br />
+                <b>Clear all</b>: set <code>clearAll</code> equal
+                <code>1</code>, <code>true</code>, <code>yes</code>, or
+                <code>y</code> (e.g., <code>?clearAll=1</code>).
+              </td>
+            </tr>
+
+            <!-- social -->
+            <tr>
+              <td><span class="method get">GET</span></td>
+              <td>
+                <a
+                  class="api-link"
+                  href="/api/social"
+                  target="_blank"
+                  rel="noopener"
+                  >/api/social</a
+                >
+              </td>
+              <td>
+                Social items store.<br />
+                <b>Details</b>: requires <code>socialId</code>.<br />
+                <b>List</b>: optional <code>limit</code> (default: 10, min:1,
+                max: 50).
+              </td>
+            </tr>
+            <tr>
+              <td><span class="method delete">DELETE</span></td>
+              <td>
+                <a
+                  class="api-link"
+                  href="/api/social"
+                  target="_blank"
+                  rel="noopener"
+                  >/api/social</a
+                >
+              </td>
+              <td>
+                Delete news.<br />
+                <b>Single</b>: requires <code>?socialId=xxx</code>.<br />
+                <b>Clear all</b>: set <code>clearAll</code> equal
+                <code>1</code>, <code>true</code>, <code>yes</code>, or
+                <code>y</code> (e.g., <code>?clearAll=1</code>).
+              </td>
+            </tr>
+
+            <tr>
+              <td><span class="method get">GET</span></td>
+              <td>
+                <a
+                  class="api-link"
+                  href="/api/blog-target"
+                  target="_blank"
+                  rel="noopener"
+                  >/api/blog-target</a
+                >
+              </td>
+              <td>
+                Read the current blog targets configuration (e.g.,
+                <code>blogDns</code>, <code>blogEmail</code>,
+                <code>enabled</code>).
+              </td>
+            </tr>
+            <tr>
+              <td><span class="method post">POST</span></td>
+              <td>
+                <a
+                  class="api-link"
+                  href="/api/blog-target"
+                  target="_blank"
+                  rel="noopener"
+                  >/api/blog-target</a
+                >
+              </td>
+              <td>Update blog targets configuration.</td>
+            </tr>
+
+            <!-- facebook-api -->
+            <tr>
+              <td><span class="method get">GET</span></td>
+              <td>
+                <a
+                  class="api-link"
+                  href="/api/facebook-api"
+                  target="_blank"
+                  rel="noopener"
+                  >/api/facebook-api</a
+                >
+              </td>
+              <td>
+                View Facebook Pages API config store.
+              </td>
+            </tr>
+
+            <tr>
+              <td><span class="method post">POST</span></td>
+              <td>
+                <a
+                  class="api-link"
+                  href="/api/facebook-api"
+                  target="_blank"
+                  rel="noopener"
+                  >/api/facebook-api</a
+                >
+              </td>
+              <td>
+                Save/replace Facebook Pages config.
+              </td>
+            </tr>
+
+            <tr>
+              <td><span class="method post">POST</span></td>
+              <td>
+                <a
+                  class="api-link"
+                  href="/api/ingest"
+                  target="_blank"
+                  rel="noopener"
+                  >/api/ingest</a
+                >
+              </td>
+              <td>
+                Ingest RSS payloads for type <code>news</code> or
+                <code>social</code> (create a batch and enqueue items depending
+                on mode).
+              </td>
+            </tr>
+
+            <tr>
+              <td><span class="method post">POST</span></td>
+              <td>
+                <a class="api-link" href="/api/social-queue-link" target="_blank" rel="noopener"
+                  >/api/social-queue-link</a
+                >
+              </td>
+              <td>
+                Enqueue a post request from child chat channels.<br />
+                <b>Required</b>: JSON body <code>{ chatId, text, flags }</code>.<br />
+                <b>Notes</b>: extracts <code>LINK</code> from <code>text</code> to resolve itemId and push into the social queue.
+              </td>
+            </tr>
+
+            <tr>
+              <td><span class="method post">POST</span></td>
+              <td>
+                <a
+                  class="api-link"
+                  href="/api/news-run"
+                  target="_blank"
+                  rel="noopener"
+                  >/api/news-run</a
+                >
+              </td>
+              <td>
+                Triggered by a Worker on a schedule (every 5 minutes) to process
+                the queue and send draft emails.
+              </td>
+            </tr>
+
+            <tr>
+              <td><span class="method post">POST</span></td>
+              <td>
+                <a
+                  class="api-link"
+                  href="/api/social-run"
+                  target="_blank"
+                  rel="noopener"
+                  >/api/social-run</a
+                >
+              </td>
+              <td>
+                Triggered by a Worker on a schedule to process the social queue
+                (e.g., publish/share to social platforms).
+              </td>
+            </tr>
+
+            <tr>
+              <td><span class="method get">GET</span></td>
+              <td>
+                <a
+                  class="api-link"
+                  href="/api/news-queue"
+                  target="_blank"
+                  rel="noopener"
+                  >/api/news-queue</a
+                >
+              </td>
+              <td>
+                View <code>limit</code> (<code>default: 10</code>,
+                <code>min: 1</code>, <code> max: 50</code>) news currently
+                queued for publishing.
+              </td>
+            </tr>
+
+            <tr>
+              <td><span class="method post">POST</span></td>
+              <td>
+                <a
+                  class="api-link"
+                  href="/api/news-queue"
+                  target="_blank"
+                  rel="noopener"
+                  >/api/news-queue</a
+                >
+              </td>
+              <td>
+                Re-queue a items to news queue. Mush have check <code>type</code> of item or batch</br>
+                <b>Single</b>: requires <code>action = enqueue</code> and <code>newsId</code> with option <code>force = 1</code> for ignore dedupe.</br>
+                <b>All of batch</b>: requires <code>action = enqueuebatch</code> and <code>batchId</code>.
+              </td>
+            </tr>
+
+            <tr>
+              <td><span class="method delete">DELETE</span></td>
+              <td>
+                <a
+                  class="api-link"
+                  href="/api/news-queue"
+                  target="_blank"
+                  rel="noopener"
+                  >/api/news-queue</a
+                >
+              </td>
+              <td>
+                Clear the entire news queue.<br />
+                <b>Single</b>: requires <code>?newsId=xxx</code>.<br />
+                <b>Clear all</b>: set <code>clearAll</code> equal
+                <code>1</code>, <code>true</code>, <code>yes</code>, or
+                <code>y</code> (e.g., <code>?clearAll=1</code>).
+              </td>
+            </tr>
+            </tr>
+
+            <tr>
+              <td><span class="method get">GET</span></td>
+              <td>
+                <a
+                  class="api-link"
+                  href="/api/social-queue"
+                  target="_blank"
+                  rel="noopener"
+                  >/api/social-queue</a
+                >
+              </td>
+              <td>
+                View <code>limit</code> (<code>default: 10</code>, <code>min: 1</code>, <code>max: 50</code>) items
+                currently queued for social publishing.
+              </td>
+            </tr>
+
+            <tr>
+              <td><span class="method post">POST</span></td>
+              <td>
+                <a
+                  class="api-link"
+                  href="/api/social-queue"
+                  target="_blank"
+                  rel="noopener"
+                  >/api/social-queue</a
+                >
+              </td>
+              <td>
+                Re-queue a items to social queue. Mush have check <code>type</code> of item or batch</br>
+                <b>Single</b>: requires <code>action = enqueue</code> and <code>socialId</code> with option <code>force = 1</code> for ignore dedupe.</br>
+                <b>All of batch</b>: requires <code>action = enqueuebatch</code> and <code>batchId</code>.
+              </td>
+            </tr>
+
+             <tr>
+              <td><span class="method delete">DELETE</span></td>
+              <td>
+                <a
+                  class="api-link"
+                  href="/api/social-queue"
+                  target="_blank"
+                  rel="noopener"
+                  >/api/social-queue</a
+                >
+              </td>
+              <td>
+                Clear the entire social queue.<br />
+                <b>Single</b>: requires <code>?socialId=xxx</code>.<br />
+                <b>Clear all</b>: set <code>clearAll</code> equal
+                <code>1</code>, <code>true</code>, <code>yes</code>, or
+                <code>y</code> (e.g., <code>?clearAll=1</code>).
+              </td>
+            </tr>
+
+          </tbody>
+        </table>
+
+        <div class="note">
+          <b>Authentication:</b> admin endpoints are typically protected via
+          <code>Authorization: Bearer &lt;PUBLISH_SECRET&gt;</code>
+          (controlled by <code>REQUIRE_AUTH</code>).
+        </div>
+      </section>
+    </div>
+  </body>
+</html>
