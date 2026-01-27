@@ -10,6 +10,39 @@ function parseQueueId(raw) {
   return { itemId, type, countRetry: Number(countRetry) };
 }
 
+function pickRandom(arr = []) {
+  if (!Array.isArray(arr) || arr.length === 0) return null;
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function loadIndexedServers(prefix) {
+  const servers = [];
+
+  for (let i = 1; i <= 10; i++) {
+    const endpoint = process.env[`${prefix}_ENDPOINT_API${i}`];
+    const token = process.env[`${prefix}_TOKEN_SECRET`];
+
+    if (endpoint && token) {
+      servers.push({
+        endpoint: endpoint.trim(),
+        token: token.trim(),
+        index: i,
+      });
+    }
+  }
+
+  return servers;
+}
+
+const SERVER_CACHE = {};
+
+function getServersCached(prefix) {
+  if (!SERVER_CACHE[prefix]) {
+    SERVER_CACHE[prefix] = loadIndexedServers(prefix);
+  }
+  return SERVER_CACHE[prefix];
+}
+
 async function fetchFeatureImage(link, { endpoint, token } = {}) {
   const url = toStr(link);
   if (!url) throw new Error("link is required");
@@ -54,6 +87,26 @@ async function fetchContent(link, { endpoint, token } = {}) {
   };
 }
 
+async function fetchFeatureImageAuto(link) {
+  const servers = [...getServersCached("FEATURED_IMAGE_SERVER")];
+  const server = pickRandom(servers);
+
+  return fetchFeatureImage(link, {
+    endpoint: server?.endpoint,
+    token: server?.token,
+  });
+}
+
+async function fetchContentAuto(link) {
+  const servers = [...getServersCached("CONTENT_SERVER")];
+  const server = pickRandom(servers);
+
+  return fetchContent(link, {
+    endpoint: server?.endpoint,
+    token: server?.token,
+  });
+}
+
 async function runCrawl({ limit = 10, dryRun = false } = {}) {
   let processed = 0;
   let enqueued = 0;
@@ -89,8 +142,8 @@ async function runCrawl({ limit = 10, dryRun = false } = {}) {
     try {
       result =
         type === "news"
-          ? await fetchContent(item.link)
-          : await fetchFeatureImage(item.link);
+          ? await fetchContentAuto(item.link)
+          : await fetchFeatureImageAuto(item.link);
     } catch {
       console.log("Error try crawl by fectch server");
       retryList.push(`${itemId}|${type}|${countRetry + 1}`);
