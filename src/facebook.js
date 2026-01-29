@@ -35,6 +35,12 @@ function clampText(s, max = 800) {
   );
 }
 
+function fixDotSpacing(text) {
+  if (!text) return "";
+
+  return String(text).replace(/\.([A-Za-z])/g, ". $1");
+}
+
 async function getFaceBookAPIConfig() {
   const raw = await redis.get(FACEBOOK_TARGET_KEY);
   const parsed = safeParse(raw) || {};
@@ -89,7 +95,7 @@ function buildFaceBookPost(item) {
 
   const main = clampText(crawlSnippet || title + " " + snippet || "", 800);
   const parts = [];
-  if (main) parts.push(main);
+  if (main) parts.push(fixDotSpacing(main));
   if (link) parts.push(`👉 Wath more in here: ${link}?fbid=1`);
 
   return {
