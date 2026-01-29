@@ -181,7 +181,9 @@ async function sendFaceBookPost(item, opts = {}) {
             toStr(p?.page) === wantPage,
         );
         if (idx === -1) return [];
-        return [{ index: idx, page: wantPage, tags: p?.tags }];
+        return [
+          { index: idx, page: wantPage, tags: pagesArr[idx]?.tags || [] },
+        ];
       })()
     : pagesArr
         .map((p, i) => ({ p, i }))
