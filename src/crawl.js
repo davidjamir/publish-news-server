@@ -43,6 +43,15 @@ function getServersCached(prefix) {
   return SERVER_CACHE[prefix];
 }
 
+function removeLinks(text) {
+  if (!text) return "";
+
+  return String(text)
+    .replace(/https?:\/\/[^\s)>\]"'}]+/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 async function fetchFeatureImage(link, { endpoint, token } = {}) {
   const url = toStr(link);
   if (!url) throw new Error("link is required");
@@ -60,7 +69,10 @@ async function fetchFeatureImage(link, { endpoint, token } = {}) {
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(j.error || `og worker error ${r.status}`);
 
-  return { featuredImage: toStr(j.image), crawlSnippet: toStr(j.snippet) };
+  return {
+    featuredImage: toStr(j.image),
+    crawlSnippet: toStr(removeLinks(j.snippet)),
+  };
 }
 
 async function fetchContent(link, { endpoint, token } = {}) {
@@ -83,7 +95,7 @@ async function fetchContent(link, { endpoint, token } = {}) {
   return {
     crawlHtml: j.html,
     featuredImage: j.image,
-    crawlSnippet: toStr(j.snippet),
+    crawlSnippet: toStr(removeLinks(j.snippet)),
   };
 }
 
