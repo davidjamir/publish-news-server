@@ -5,7 +5,7 @@ const { isoTimeZone } = require("../helper/timeZone");
 const { sendFaceBookPost } = require("../src/facebook");
 const { toStr } = require("../helper/toString");
 
-const MAX_PER_RUN = 1;
+const MAX_PER_RUN = 3;
 function parseMember(member) {
   const s = toStr(member);
   const i = s.indexOf("|");
