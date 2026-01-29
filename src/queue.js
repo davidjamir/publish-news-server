@@ -25,7 +25,7 @@ function makeQueue({
   modeEnv, // "NEWS_QUEUE_MODE" | "SOCIAL_QUEUE_MODE"
   defaultMode = "auto", // "auto" | "manual"
   dedupeTtlSeconds = 10 * 24 * 60 * 60,
-  maxQueueLen = 5000,
+  maxQueueLen = 100000,
   onqueued,
   statusIdFromId,
 } = {}) {
