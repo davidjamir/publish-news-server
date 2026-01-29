@@ -86,17 +86,27 @@ async function getFacebookAPIByName(pageName) {
   };
 }
 
-function buildFaceBookPost(item) {
+function buildFaceBookPost(item = {}, tags = []) {
   const title = toStr(item?.title);
   const crawlSnippet = toStr(item?.crawlSnippet);
   const snippet = toStr(item?.snippet);
   const link = toStr(item?.link);
   const imageUrl = toStr(item?.featuredImage);
+  const hashtags = Array.isArray(tags)
+    ? tags
+        .map((t) => toStr(t).trim())
+        .filter(Boolean)
+        .map((t) => "#" + t.replace(/\s+/g, "")) // bỏ space
+    : [];
 
   const main = clampText(crawlSnippet || title + " " + snippet || "", 800);
   const parts = [];
-  if (main) parts.push(fixDotSpacing(main));
+  if (main) parts.push(removeLinks(fixDotSpacing(main)));
   if (link) parts.push(`👉 Wath more in here: ${link}?fbid=1`);
+  if (hashtags.length) {
+    parts.push("");
+    parts.push(hashtags.slice(0, 5).join(" "));
+  }
 
   return {
     message: parts.filter(Boolean).join("\n"),
@@ -171,7 +181,7 @@ async function sendFaceBookPost(item, opts = {}) {
             toStr(p?.page) === wantPage,
         );
         if (idx === -1) return [];
-        return [{ index: idx, page: wantPage }];
+        return [{ index: idx, page: wantPage, tags: p?.tags }];
       })()
     : pagesArr
         .map((p, i) => ({ p, i }))
@@ -180,7 +190,7 @@ async function sendFaceBookPost(item, opts = {}) {
             String(p?.status || "").toLowerCase() === "pending" &&
             !!toStr(p?.page),
         )
-        .map(({ i, p }) => ({ index: i, page: toStr(p?.page) }));
+        .map(({ i, p }) => ({ index: i, page: toStr(p?.page), tags: p?.tags }));
 
   if (pending.length === 0) {
     throw new Error(
@@ -190,11 +200,11 @@ async function sendFaceBookPost(item, opts = {}) {
     );
   }
 
-  const post = buildFaceBookPost(item);
   const results = [];
-  for (const { page, index } of pending) {
+  for (const { index, page, tags } of pending) {
     try {
       const target = await getFacebookAPIByName(page);
+      const post = buildFaceBookPost(item, tags);
       const payload = { ...target, ...post };
 
       let created = null;

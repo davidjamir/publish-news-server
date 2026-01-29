@@ -67,8 +67,9 @@ module.exports = async (req, res) => {
       return res.status(400).json({ ok: false, error: "Missing JSON body" });
     }
 
-    const { chatId, text, flags } = body;
+    const { chatId, flags, tags, text } = body;
     const _flags = Array.isArray(flags) ? flags : [];
+    const _tags = Array.isArray(tags) ? tags : [];
     const type = getType(_flags);
     const page = getPageName(_flags);
     const modeSocial = getModeSocial(_flags);
@@ -98,7 +99,9 @@ module.exports = async (req, res) => {
       ...pages,
       {
         index: pages.length,
+        requestChatId: chatId,
         page,
+        tags: _tags,
         status: "pending",
         postId: "",
         error: "",

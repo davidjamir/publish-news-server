@@ -68,6 +68,7 @@ module.exports = async (req, res) => {
       api: body.api ?? {},
       topics: Array.isArray(body.topics) ? body.topics : [],
       flags: Array.isArray(body.flags) ? body.flags : [],
+      tags: Array.isArray(body.tags) ? body.tags : [],
       targets: Array.isArray(body.targets) ? body.targets : [],
       source: body.source ?? {},
       items,
