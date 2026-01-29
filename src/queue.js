@@ -4,7 +4,7 @@ const { isoTimeZone } = require("../helper/timeZone");
 const { newsStore, socialStore } = require("../src/store");
 const { toStr } = require("../helper/toString");
 
-const DEDUPE_TTL_SECONDS = 30 * 24 * 60 * 60;
+const DEDUPE_TTL_SECONDS = 10 * 24 * 60 * 60;
 const NEWS_PREFIX = "news";
 const NEWS_QUEUE = "news:queue";
 const NEWS_DEDUPE = "news:dedupe";
