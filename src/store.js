@@ -5,25 +5,25 @@ const { toStr } = require("../helper/toString");
 
 const BATCH_KEY_PREFIX = "batch";
 const BATCH_LIST = "batch:list";
-const BATCH_TTL_SECONDS = 20 * 24 * 60 * 60;
+const BATCH_TTL_SECONDS = 10 * 24 * 60 * 60;
 
 const NEWS_KEY_PREFIX = "news:item";
 const NEWS_LIST = "news:item:list";
-const NEWS_TTL_SECONDS = 30 * 24 * 60 * 60;
+const NEWS_TTL_SECONDS = 10 * 24 * 60 * 60;
 
 const SOCIAL_KEY_PREFIX = "social:item";
 const SOCIAL_LIST = "social:item:list";
-const SOCIAL_TTL_SECONDS = 30 * 24 * 60 * 60;
+const SOCIAL_TTL_SECONDS = 10 * 24 * 60 * 60;
 
 const LINK_KEY_PREFIX = "link:item";
 const LINK_LIST = "link:item:list";
-const LINK_TTL_SECONDS = 30 * 24 * 60 * 60;
+const LINK_TTL_SECONDS = 10 * 24 * 60 * 60;
 
 function makeStore({
   keyPrefix, // vd: "batch" hoặc "news:item" hoặc "social:item"
   keyList, // vd: "batch:list" hoặc "news:item:list"
   ttlSeconds = null, // null = không TTL, hoặc số giây
-  maxList = 1000,
+  maxList = 100000,
   validatePayload, // optional: fn(payload)
   getIdFromPayload, // optional: fn(payload) => id
 } = {}) {

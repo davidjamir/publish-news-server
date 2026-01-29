@@ -82,12 +82,12 @@ module.exports = async (req, res) => {
     if (!page) throw new Error("Missing page flag: page:xxx");
     if (modeSocial !== "auto") throw new Error("modeSocial must be auto");
 
-    const itemPage = await getFacebookAPIByName(page);
-    if (!itemPage) throw new Error("Page item not found");
     const itemLink = await linkStore.get(link);
     if (!itemLink) throw new Error("Link not found");
     const item = await socialStore.get(itemLink.itemId);
     if (!item) throw new Error("Item not found");
+    const itemPage = await getFacebookAPIByName(page);
+    if (!itemPage) throw new Error("Page item not found");
 
     const scheduleAt = scheduleOn
       ? await computeScheduleAt({ pageId: itemPage.pageId })

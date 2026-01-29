@@ -100,9 +100,10 @@ module.exports = async (req, res) => {
     await batchStore.push({ ...payload, status: "stored" });
 
     for (const item of payload.items) {
-      if (item.type === "social") await socialStore.push(item);
-      else await newsStore.push(item);
-      await linkStore.push({ itemId: item.itemId, link: item.link });
+      if (item.type === "social") {
+        await socialStore.push(item);
+        await linkStore.push({ itemId: item.itemId, link: item.link });
+      } else await newsStore.push(item);
       await crawlQueue.pushOne(`${item.itemId}|${item.type}|0`, {
         dedupe: false,
         status: "crawl",
