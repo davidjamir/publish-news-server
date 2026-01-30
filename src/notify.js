@@ -1,8 +1,5 @@
-const NOTIFY_SERVER_ENDPOINT_API = process.env.NOTIFY_SERVER_ENDPOINT_API;
-const NOTIFY_SERVER_SECRET = process.env.NOTIFY_SERVER_SECRET;
-
 async function sendNotify(payload) {
-  if (!NOTIFY_SERVER_ENDPOINT_API) {
+  if (!process.env.NOTIFY_SERVER_ENDPOINT_API) {
     throw new Error("Missing NOTIFY_SERVER_ENDPOINT_API");
   }
 
@@ -10,11 +7,11 @@ async function sendNotify(payload) {
   const timeout = setTimeout(() => controller.abort(), 5000); // 5s là đủ
 
   try {
-    const r = await fetch(NOTIFY_SERVER_ENDPOINT_API, {
+    const r = await fetch(process.env.NOTIFY_SERVER_ENDPOINT_API, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${NOTIFY_SERVER_SECRET}`,
+        Authorization: `Bearer ${process.env.NOTIFY_SERVER_SECRET}`,
       },
       body: JSON.stringify(payload),
       signal: controller.signal,
