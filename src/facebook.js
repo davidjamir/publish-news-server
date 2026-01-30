@@ -305,7 +305,7 @@ async function sendFaceBookPost(item, opts = {}) {
   const allDone = (item.pages || []).every((p) => p?.status === "done");
   item.status = allDone ? "published" : "partial";
   await socialStore.push(item);
-  return { ok: true, results };
+  return { ok: true, ...results };
 }
 
 module.exports = {
