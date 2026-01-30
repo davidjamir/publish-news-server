@@ -6,6 +6,7 @@ const { isoTimeZone } = require("../helper/timeZone");
 
 const FACEBOOK_TARGET_KEY = "facebook-api";
 const FB_GRAPH_BASE = `https://graph.facebook.com/v24.0`;
+const MAX_NUMBER_TAGS = 5;
 
 function normPage(p) {
   return {
@@ -48,6 +49,19 @@ function removeLinks(text) {
     .replace(/https?:\/\/[^\s)>\]"'}]+/gi, "")
     .replace(/\s{2,}/g, " ")
     .trim();
+}
+
+function pickRandomTags(arr = [], max = 5) {
+  if (!Array.isArray(arr)) return [];
+
+  const cloned = [...arr]; // không mutate mảng gốc
+
+  for (let i = cloned.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [cloned[i], cloned[j]] = [cloned[j], cloned[i]];
+  }
+
+  return cloned.slice(0, max);
 }
 
 async function getFaceBookAPIConfig() {
@@ -102,7 +116,7 @@ function buildFaceBookPost(item = {}, tags = []) {
   const link = toStr(item?.link);
   const imageUrl = toStr(item?.featuredImage);
   const hashtags = Array.isArray(tags)
-    ? tags
+    ? pickRandom(tags, MAX_NUMBER_TAGS)
         .map((t) => toStr(t).trim())
         .filter(Boolean)
         .map((t) => "#" + t.replace(/\s+/g, "")) // bỏ space
@@ -113,7 +127,7 @@ function buildFaceBookPost(item = {}, tags = []) {
   if (main) parts.push(removeLinks(fixDotSpacing(main)));
   if (link) parts.push(`👉 Wath more in here: ${link}?fbid=1`);
   if (hashtags.length) {
-    parts.push("");
+    parts.push("\n");
     parts.push(hashtags.slice(0, 5).join(" "));
   }
 
@@ -211,8 +225,6 @@ async function sendFaceBookPost(item, opts = {}) {
     );
   }
 
-  console.log("Break Point 2", pending);
-
   const results = [];
   for (const { index, page, tags } of pending) {
     try {
@@ -222,8 +234,6 @@ async function sendFaceBookPost(item, opts = {}) {
       }
       const post = buildFaceBookPost(item, tags);
       const payload = { ...target, ...post };
-
-      console.log("Break Point 3", payload);
 
       let created = null;
       let postId = "";
@@ -271,8 +281,6 @@ async function sendFaceBookPost(item, opts = {}) {
         updatedAt: isoTimeZone(),
       };
 
-      console.log("Break Point 4", item);
-
       results.push({
         ok: true,
         pageName: page,
@@ -289,7 +297,6 @@ async function sendFaceBookPost(item, opts = {}) {
         updatedAt: isoTimeZone(),
         error: msg,
       };
-      console.log("Break Point 5", item);
 
       results.push({ pageName: page, ok: false, error: msg });
     }

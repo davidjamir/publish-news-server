@@ -41,6 +41,7 @@ module.exports = async (req, res) => {
       const { itemId, page } = parseMember(member);
       let status = "ok";
       let error = null;
+      let res = {};
 
       try {
         if (!itemId || !page)
@@ -49,13 +50,18 @@ module.exports = async (req, res) => {
         const socialItem = await socialStore.get(itemId);
         if (!socialItem) throw new Error("socialItem missing/expired");
 
-        await sendFaceBookPost(socialItem, { page });
+        res = await sendFaceBookPost(socialItem, { page });
       } catch (e) {
         status = "failed";
         error = String(e?.message || e);
       }
 
-      results.push({ socialId: member, status, ...(error ? { error } : {}) });
+      results.push({
+        socialId: member,
+        status,
+        ...res,
+        ...(error ? { error } : {}),
+      });
     }
     console.log({ ok: true, processed: results.length, results });
     return res.json({ ok: true, processed: results.length, results });
