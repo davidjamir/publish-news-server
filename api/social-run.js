@@ -4,6 +4,8 @@ const { socialQueue } = require("../src/queue");
 const { isoTimeZone } = require("../helper/timeZone");
 const { sendFaceBookPost } = require("../src/facebook");
 const { toStr } = require("../helper/toString");
+const { sendNotify } = require("..//src/notify");
+const { isoTimeZone } = require("../helper/timeZone");
 
 const MAX_PER_RUN = 3;
 function parseMember(member) {
@@ -54,6 +56,18 @@ module.exports = async (req, res) => {
       } catch (e) {
         status = "failed";
         error = String(e?.message || e);
+      }
+
+      for (const item of res.results) {
+        await sendNotify({
+          chatId: item.requestChatId,
+          page: item.pageName,
+          title: socialItem.title,
+          status: item.ok,
+          text: item.error,
+          timeBangkok: isoTimeZone(new Date(scheduleAt)),
+          timeNewyork: isoTimeZone(new Date(scheduleAt), "America/New_York"),
+        });
       }
 
       results.push({

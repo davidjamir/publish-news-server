@@ -1,7 +1,7 @@
 const { redis } = require("./redis");
 const { safeParse } = require("../helper/safeParse");
 const { toStr } = require("../helper/toString");
-const { socialStore } = require("../src/store");
+const { socialStore } = require("./store");
 const { isoTimeZone } = require("../helper/timeZone");
 
 const FACEBOOK_TARGET_KEY = "facebook-api";
@@ -205,7 +205,12 @@ async function sendFaceBookPost(item, opts = {}) {
         );
         if (idx === -1) return [];
         return [
-          { index: idx, page: wantPage, tags: pagesArr[idx]?.tags || [] },
+          {
+            index: idx,
+            requestChatId: pagesArr[idx]?.requestChatId,
+            page: wantPage,
+            tags: pagesArr[idx]?.tags || [],
+          },
         ];
       })()
     : pagesArr
@@ -215,7 +220,12 @@ async function sendFaceBookPost(item, opts = {}) {
             String(p?.status || "").toLowerCase() === "pending" &&
             !!toStr(p?.page),
         )
-        .map(({ i, p }) => ({ index: i, page: toStr(p?.page), tags: p?.tags }));
+        .map(({ i, p }) => ({
+          index: i,
+          requestChatId: p?.requestChatId,
+          page: toStr(p?.page),
+          tags: p?.tags,
+        }));
 
   if (pending.length === 0) {
     throw new Error(
@@ -226,7 +236,7 @@ async function sendFaceBookPost(item, opts = {}) {
   }
 
   const results = [];
-  for (const { index, page, tags } of pending) {
+  for (const { index, requestChatId, page, tags } of pending) {
     try {
       const target = await getFacebookAPIByName(page);
       if (!target) {
@@ -283,6 +293,7 @@ async function sendFaceBookPost(item, opts = {}) {
 
       results.push({
         ok: true,
+        requestChatId,
         pageName: page,
         postId,
         post: created,
@@ -298,14 +309,14 @@ async function sendFaceBookPost(item, opts = {}) {
         error: msg,
       };
 
-      results.push({ pageName: page, ok: false, error: msg });
+      results.push({ requestChatId, pageName: page, ok: false, error: msg });
     }
   }
 
   const allDone = (item.pages || []).every((p) => p?.status === "done");
   item.status = allDone ? "published" : "partial";
   await socialStore.push(item);
-  return { ok: true, ...results };
+  return { ok: true, results };
 }
 
 module.exports = {
