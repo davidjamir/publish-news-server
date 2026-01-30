@@ -63,8 +63,8 @@ module.exports = async (req, res) => {
         ...(error ? { error } : {}),
       });
     }
-    console.log({ ok: true, processed: results.length, results });
-    return res.json({ ok: true, processed: results.length, results });
+    console.log({ ok: true, processed: results.length, ...results });
+    return res.json({ ok: true, processed: results.length, ...results });
   } catch (err) {
     console.error("[api/social-run] error:", err);
     return res
