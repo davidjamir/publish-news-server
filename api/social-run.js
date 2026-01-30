@@ -63,8 +63,8 @@ module.exports = async (req, res) => {
           title: socialItem.title,
           status: item.ok,
           text: item.error,
-          timeBangkok: isoTimeZone(new Date(scheduleAt)),
-          timeNewyork: isoTimeZone(new Date(scheduleAt), "America/New_York"),
+          timeBangkok: isoTimeZone(new Date()),
+          timeNewyork: isoTimeZone(new Date(), "America/New_York"),
         });
       }
 
