@@ -116,7 +116,7 @@ function buildFaceBookPost(item = {}, tags = []) {
   const link = toStr(item?.link);
   const imageUrl = toStr(item?.featuredImage);
   const hashtags = Array.isArray(tags)
-    ? pickRandom(tags, MAX_NUMBER_TAGS)
+    ? pickRandomTags(tags, MAX_NUMBER_TAGS)
         .map((t) => toStr(t).trim())
         .filter(Boolean)
         .map((t) => "#" + t.replace(/\s+/g, "")) // bỏ space
