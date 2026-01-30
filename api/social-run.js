@@ -40,16 +40,15 @@ module.exports = async (req, res) => {
       if (!member) break;
 
       const { itemId, page } = parseMember(member);
+      const socialItem = await socialStore.get(itemId);
       let status = "ok";
       let error = null;
       let res = {};
 
       try {
+        if (!socialItem) throw new Error("socialItem missing/expired");
         if (!itemId || !page)
           throw new Error("invalid queue member (expected itemId|page)");
-
-        const socialItem = await socialStore.get(itemId);
-        if (!socialItem) throw new Error("socialItem missing/expired");
 
         res = await sendFaceBookPost(socialItem, { page });
       } catch (e) {
