@@ -41,6 +41,15 @@ function fixDotSpacing(text) {
   return String(text).replace(/\.([A-Za-z])/g, ". $1");
 }
 
+function removeLinks(text) {
+  if (!text) return "";
+
+  return String(text)
+    .replace(/https?:\/\/[^\s)>\]"'}]+/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 async function getFaceBookAPIConfig() {
   const raw = await redis.get(FACEBOOK_TARGET_KEY);
   const parsed = safeParse(raw) || {};
@@ -202,12 +211,19 @@ async function sendFaceBookPost(item, opts = {}) {
     );
   }
 
+  console.log("Break Point 2", pending);
+
   const results = [];
   for (const { index, page, tags } of pending) {
     try {
       const target = await getFacebookAPIByName(page);
+      if (!target) {
+        throw new Error(`FACEBOOK_TARGET_NOT_FOUND: ${page}`);
+      }
       const post = buildFaceBookPost(item, tags);
       const payload = { ...target, ...post };
+
+      console.log("Break Point 3", payload);
 
       let created = null;
       let postId = "";
@@ -255,6 +271,8 @@ async function sendFaceBookPost(item, opts = {}) {
         updatedAt: isoTimeZone(),
       };
 
+      console.log("Break Point 4", item);
+
       results.push({
         ok: true,
         pageName: page,
@@ -271,6 +289,7 @@ async function sendFaceBookPost(item, opts = {}) {
         updatedAt: isoTimeZone(),
         error: msg,
       };
+      console.log("Break Point 5", item);
 
       results.push({ pageName: page, ok: false, error: msg });
     }
