@@ -59,6 +59,7 @@ module.exports = async (req, res) => {
     return res.status(401).json({ ok: false, error: "Unauthorized" });
   }
 
+  let title = "";
   try {
     console.log("Cloudflare Trigger Worker Run Add Link", isoTimeZone());
     const body = req.body || {};
@@ -76,19 +77,23 @@ module.exports = async (req, res) => {
     const scheduleOn = getScheduleFlag(_flags);
     const link = extractLink(text);
 
-    if (!chatId) throw new Error("chatId is required");
-    if (!link) throw new Error("LINK not found in text");
+    if (!chatId) throw new Error("Not found chatId in request!");
+    if (!link) throw new Error("Not found LINK in message request!");
     if (type !== "social")
       throw new Error("Missing type flag (expected type:social)");
-    if (!page) throw new Error("Missing page flag: page:xxx");
+    if (!page) throw new Error("Missing page flag (expected page:xxx)");
     if (modeSocial !== "auto") throw new Error("modeSocial must be auto");
 
     const itemLink = await linkStore.get(link);
-    if (!itemLink) throw new Error("Link not found");
+    if (!itemLink) throw new Error("Link not found in database!");
     const item = await socialStore.get(itemLink.itemId);
-    if (!item) throw new Error("Item not found");
+    if (!item)
+      throw new Error("Item not found, may be wait a minute for crawl!");
     const itemPage = await getFacebookAPIByName(page);
-    if (!itemPage) throw new Error("Page item not found");
+    if (!itemPage)
+      throw new Error(
+        `Social page ${page} not found in database. Please checking token page and status of page!`,
+      );
 
     const scheduleAt = scheduleOn
       ? await computeScheduleAt({ pageId: itemPage.pageId })
@@ -117,20 +122,23 @@ module.exports = async (req, res) => {
 
     await commitScheduleForPage(itemPage.pageId, scheduleAt);
 
+    title = item.title;
     return res.json({
-      ok: true,
+      status: r.ok,
       ...r,
       chatId,
       page,
-      title: item.title,
+      title,
       link: item.link,
       timeBangkok: isoTimeZone(new Date(scheduleAt)),
       timeNewyork: isoTimeZone(new Date(scheduleAt), "America/New_York"),
     });
   } catch (err) {
     console.error("[api/social-queue-link] error:", err);
-    return res
-      .status(500)
-      .json({ ok: false, error: err?.message || "Internal Server Error" });
+    return res.status(500).json({
+      status: false,
+      title,
+      text: toStr(err?.message || "Internal Server Error"),
+    });
   }
 };
