@@ -1,28 +1,10 @@
-const { redis } = require("./redis");
-const { safeParse } = require("../helper/safeParse");
 const { toStr } = require("../helper/toString");
 const { socialStore } = require("./store");
 const { isoTimeZone } = require("../helper/timeZone");
+const { getOnePage } = require("../database/pages");
 
-const FACEBOOK_TARGET_KEY = "facebook-api";
 const FB_GRAPH_BASE = `https://graph.facebook.com/v24.0`;
 const MAX_NUMBER_TAGS = 5;
-
-function normPage(p) {
-  return {
-    source: toStr(p?.source),
-    pageId: toStr(p?.pageId || p?.id),
-    name: toStr(p?.name),
-    token: toStr(p?.token || p?.access_token),
-    updatedAt: toStr(p?.updatedAt),
-  };
-}
-
-function maskToken(t) {
-  const s = toStr(t);
-  if (!s) return "";
-  return s.length > 12 ? `${s.slice(0, 6)}…${s.slice(-4)}` : "********";
-}
 
 function clampText(s, max = 800) {
   s = toStr(s).replace(/\s+/g, " ").trim();
@@ -64,27 +46,11 @@ function pickRandomTags(arr = [], max = 5) {
   return cloned.slice(0, max);
 }
 
-async function getFaceBookAPIConfig() {
-  const raw = await redis.get(FACEBOOK_TARGET_KEY);
-  const parsed = safeParse(raw) || {};
-  const pages = Array.isArray(parsed.pages) ? parsed.pages.map(normPage) : [];
-  return { pages };
-}
-
 async function getFacebookAPIByName(pageName) {
   const want = toStr(pageName);
   if (!want) throw new Error("getFacebookTargetByName: pageName is required");
 
-  const { pages } = await getFaceBookAPIConfig();
-  if (!pages.length)
-    throw new Error("getFacebookTargetByName: config.pages is empty");
-
-  let found = pages.find((p) => p.name === want);
-
-  // 2) contains match fallback
-  if (!found)
-    found = pages.find((p) => p.name.includes(want) || want.includes(p.name));
-
+  let found = await getOnePage({ name: want });
   if (!found) {
     throw new Error(
       `getFacebookTargetByName: page not found for name="${pageName}"`,
@@ -136,19 +102,6 @@ function buildFaceBookPost(item = {}, tags = []) {
     link,
     imageUrl,
   };
-}
-
-async function viewFaceBookAPIConfig() {
-  const cfg = await getFaceBookAPIConfig();
-  return {
-    pages: cfg.pages.map((p) => ({ ...p, maskToken: maskToken(p.token) })),
-  };
-}
-
-async function saveFaceBookAPIConfig(cfg) {
-  const pages = Array.isArray(cfg?.pages) ? cfg.pages.map(normPage) : [];
-  await redis.set(FACEBOOK_TARGET_KEY, JSON.stringify({ pages }));
-  return { ok: true, pages: pages.length };
 }
 
 async function graphFaceBookAPIPost(path, token, params) {
@@ -320,9 +273,6 @@ async function sendFaceBookPost(item, opts = {}) {
 }
 
 module.exports = {
-  FACEBOOK_TARGET_KEY,
   getFacebookAPIByName,
-  viewFaceBookAPIConfig,
-  saveFaceBookAPIConfig,
   sendFaceBookPost,
 };

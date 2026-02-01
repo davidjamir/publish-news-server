@@ -1,9 +1,6 @@
 const { isAuthorized } = require("../helper/isAuthorized");
-const { redis } = require("../src/redis");
-const { safeParse } = require("../helper/safeParse");
 const { toStr } = require("../helper/toString");
-
-const BLOG_TARGET_KEY = "blog-target";
+const { getAllBlogs, insertManyBlogs } = require("../database/blogs");
 
 function normDns(s) {
   return toStr(s).toLowerCase();
@@ -21,14 +18,12 @@ module.exports = async (req, res) => {
   }
   try {
     if (req.method === "GET") {
-      const raw = await redis.get(BLOG_TARGET_KEY);
-      const data = safeParse(raw) || { targets: [] };
-      if (!Array.isArray(data.targets)) data.targets = [];
+      const blogs = await getAllBlogs();
+
       return res.json({
         ok: true,
-        key: BLOG_TARGET_KEY,
-        count: data.targets.length,
-        ...data,
+        count: blogs.length,
+        blogs,
       });
     }
 
@@ -43,32 +38,30 @@ module.exports = async (req, res) => {
       }
 
       const seen = new Set();
+      const results = [];
       for (const t of targets) {
         const blogDns = normDns(t?.blogDns);
         const blogEmail = toStr(t?.blogEmail);
-        if (!blogDns)
-          return res
-            .status(400)
-            .json({ ok: false, error: "blogDns is required" });
-        if (!blogEmail || !isValidEmail(blogEmail)) {
-          return res
-            .status(400)
-            .json({ ok: false, error: `invalid blogEmail for ${blogDns}` });
-        }
-        if (seen.has(blogDns)) {
-          return res
-            .status(400)
-            .json({ ok: false, error: `duplicate blogDns: ${blogDns}` });
-        }
+        if (!blogDns) continue;
+        if (!blogEmail || !isValidEmail(blogEmail)) continue;
+        if (seen.has(blogDns)) continue;
+
         seen.add(blogDns);
+        results.push({
+          blogIndex: t.blogIndex,
+          blogDns,
+          blogEmail,
+          blogUser: t.blogUser,
+          blogPassword: t.blogPassword,
+          enabled: t.enabled,
+        });
       }
 
-      await redis.set(BLOG_TARGET_KEY, JSON.stringify({ targets }));
+      await insertManyBlogs(results);
 
       return res.json({
         ok: true,
-        key: BLOG_TARGET_KEY,
-        count: targets.length,
+        count: results.length,
       });
     }
 
