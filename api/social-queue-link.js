@@ -95,7 +95,7 @@ module.exports = async (req, res) => {
       : Date.now();
     const pages = Array.isArray(item.pages) ? item.pages : [];
 
-    item.pages = [
+    const payload = [
       ...pages,
       {
         index: pages.length,
@@ -109,7 +109,7 @@ module.exports = async (req, res) => {
       },
     ];
 
-    await socialStore.push(item);
+    await socialStore.update(item.itemId, { pages: payload });
     const member = `${itemLink.itemId}|${page}`;
     const r = scheduleOn
       ? await socialQueue.scheduleOne(member, scheduleAt, { dedupe: false })

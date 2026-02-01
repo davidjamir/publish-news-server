@@ -4,7 +4,7 @@ const { socialQueue } = require("../src/queue");
 const { isoTimeZone } = require("../helper/timeZone");
 const { sendFaceBookPost } = require("../src/facebook");
 const { toStr } = require("../helper/toString");
-const { sendNotify } = require("..//src/notify");
+const { sendNotify } = require("../src/notify");
 
 const MAX_PER_RUN = 3;
 function parseMember(member) {

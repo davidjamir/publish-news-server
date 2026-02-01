@@ -268,7 +268,10 @@ async function sendFaceBookPost(item, opts = {}) {
 
   const allDone = (item.pages || []).every((p) => p?.status === "done");
   item.status = allDone ? "published" : "partial";
-  await socialStore.push(item);
+  await socialStore.update(item.itemId, {
+    status: item.status,
+    pages: item.pages,
+  });
   return { ok: true, results };
 }
 
