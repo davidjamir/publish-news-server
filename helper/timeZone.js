@@ -38,7 +38,7 @@ function isoTimeZone(d = new Date(), timeZone = "Asia/Bangkok") {
   const get = (type) => parts.find((p) => p.type === type)?.value;
   return `${get("year")}-${get("month")}-${get("day")} ${get("hour")}:${get(
     "minute",
-  )}:${get("second")} ${timeZone}`;
+  )}:${get("second")} ${timeZone.split("/")[1]}`;
 }
 
 module.exports = { isoTimeZone, getDayKeyAndTtlSec };
