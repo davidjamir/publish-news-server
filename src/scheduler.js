@@ -1,33 +1,14 @@
-const { redis } = require("./redis");
-const { toStr } = require("../helper/toString");
+const { getOnePage, updateOnePage } = require("../database/pages");
 
-// CONFIG
-
-// gap tối thiểu giữa 2 post của cùng 1 page (ms)
 const DEFAULT_GAP_MS = 120 * 60 * 1000; // 120 phút
-
-// random jitter để tránh pattern cứng (ms)
 const DEFAULT_JITTER_MS = 3 * 60 * 1000; // ±3 phút
+const US_TIMEZONE = "America/New_York";
 
-// giờ vàng Mỹ (local hour)
 const US_PRIME_HOURS = [
   [7, 10], // morning
   [11, 13], // lunch
   [16, 23], // evening
 ];
-
-// timezone Mỹ (tạm dùng Eastern)
-const US_TIMEZONE = "America/New_York";
-
-const LAST_SCHEDULED_PREFIX = "page:lastScheduled";
-
-// HELPERS
-
-function getLastScheduledKey(pageId) {
-  pageId = toStr(pageId);
-  if (!pageId) throw new Error("pageId is required");
-  return `${LAST_SCHEDULED_PREFIX}:${pageId}`;
-}
 
 function randBetween(min, max) {
   return Math.floor(min + Math.random() * (max - min));
@@ -56,15 +37,10 @@ function isInPrimeHour(ts) {
 function randomMinutes(min = 0, max = 30) {
   return Math.floor(Math.random() * (max - min + 1) + min) * 60 * 1000;
 }
-/**
- * =========================
- * REDIS STATE
- * =========================
- */
 
 async function getLastScheduledAt(pageId) {
-  const raw = await redis.get(getLastScheduledKey(pageId));
-  const n = Number(raw);
+  const page = await getOnePage({ pageId });
+  const n = Number(page?.lastScheduledAt || 0);
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
@@ -73,7 +49,14 @@ async function setLastScheduledAt(pageId, tsMs) {
   if (!Number.isFinite(tsMs) || tsMs <= 0)
     throw new Error("setLastScheduledAt: invalid timestamp");
 
-  await redis.set(getLastScheduledKey(pageId), String(tsMs));
+  await updateOnePage(
+    { pageId },
+    {
+      lastScheduledAt: tsMs,
+      updatedAt: new Date(),
+    },
+  );
+
   return { ok: true };
 }
 
@@ -83,12 +66,6 @@ async function setLastScheduledAt(pageId, tsMs) {
  * =========================
  */
 
-/**
- * Tính scheduleAt cho 1 page
- *
- * - không quan tâm publish
- * - chỉ dựa vào lastScheduledAt
- */
 async function computeScheduleAt({
   pageId,
   nowMs = Date.now(),
