@@ -97,7 +97,9 @@ async function getManyItems(
 async function updateOneItem(collectionName, filter, updateData) {
   try {
     const col = await getCollection(collectionName);
-    const result = await col.updateOne(filter, { $set: updateData });
+    const result = await col.updateOne(filter, {
+      $set: { ...updateData, updatedAt: new Date() },
+    });
     return result;
   } catch (error) {
     console.error("Error updating one document:", error);

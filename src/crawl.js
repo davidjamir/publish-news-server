@@ -93,8 +93,8 @@ async function fetchContent(link, { endpoint, token } = {}) {
   if (!r.ok) throw new Error(j.error || `og worker error ${r.status}`);
 
   return {
-    crawlHtml: j.html,
-    featuredImage: j.image,
+    crawlHtml: toStr(j.html),
+    featuredImage: toStr(j.image),
     crawlSnippet: toStr(removeLinks(j.snippet)),
   };
 }

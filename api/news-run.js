@@ -39,7 +39,7 @@ module.exports = async (req, res) => {
 
         // Cần set toDns, nếu muốn gửi tới dns cụ thể, mode auto thì truyền toDns rỗng
         await sendMail(newsItem);
-        await newsStore.updateStatus(id, "Sent");
+        await newsStore.update(id, { status: "Sent" });
       } catch (e) {
         status = "failed";
         error = String(e?.message || e);

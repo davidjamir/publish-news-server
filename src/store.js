@@ -45,12 +45,9 @@ function makeStore({
   }
 
   // Update a document by its ID
-  async function update(id, patch = {}) {
+  async function update(id, meta = {}) {
     const filter = { [idField]: id }; // Use dynamic ID
-    const result = await updateOneItem(collectionName, filter, {
-      ...patch,
-      updatedAt: new Date(),
-    });
+    const result = await updateOneItem(collectionName, filter, meta);
     return { ok: true, id, result };
   }
 
