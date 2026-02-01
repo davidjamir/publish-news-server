@@ -113,7 +113,7 @@ module.exports = async (req, res) => {
     const member = `${itemLink.itemId}|${page}`;
     const r = scheduleOn
       ? await socialQueue.scheduleOne(member, scheduleAt, { dedupe: false })
-      : await socialQueue.pushOne(member, { dedupe: false });
+      : await socialQueue.push(member, { dedupe: false });
 
     await commitScheduleForPage(itemPage.pageId, scheduleAt);
 

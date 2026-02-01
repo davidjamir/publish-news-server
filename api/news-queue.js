@@ -59,7 +59,7 @@ module.exports = async (req, res) => {
             .json({ ok: false, error: "Item is not newsItem" });
         }
         // nếu vẫn dùng payload {id,batchId} thì dùng kiểu cũ
-        const r = await newsQueue.pushOne(newsId, { dedupe: true });
+        const r = await newsQueue.push(newsId, { dedupe: true });
 
         return res.json({ ok: true, action, newsId, ...r });
       }

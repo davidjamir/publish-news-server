@@ -24,7 +24,28 @@ async function getDb() {
   }
 
   _db = client.db(process.env.MONGODB_DB || "server-news");
+
+  // Tạo TTL Index nếu chưa có
+  await createTTLIndex(_db.collection("news"));
+  await createTTLIndex(_db.collection("social"));
+  await createTTLIndex(_db.collection("batches"));
+  await createTTLIndex(_db.collection("links"));
   return _db;
+}
+
+// Tạo TTL Index cho trường createdAt trong collection
+async function createTTLIndex(col) {
+  // Kiểm tra nếu TTL Index đã tồn tại
+  const indexes = await col.indexes();
+  const ttlIndexExists = indexes.some((index) => index.key.createdAt);
+
+  if (!ttlIndexExists) {
+    await col.createIndex(
+      { createdAt: 1 }, // Sắp xếp tăng dần theo createdAt
+      { expireAfterSeconds: 60 * 60 * 24 * 10 }, // Tài liệu sẽ hết hạn sau 30 ngày
+    );
+    console.log(`TTL Index created for collection: ${col.collectionName}`);
+  }
 }
 
 // Export MongoClient cho các route hoặc file khác có thể sử dụng lại

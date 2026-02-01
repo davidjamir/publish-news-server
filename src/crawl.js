@@ -181,7 +181,7 @@ async function runCrawl({ limit = 10, dryRun = false } = {}) {
     }
 
     if (type === "news" && !dryRun) {
-      await newsQueue.pushOne(itemId);
+      await newsQueue.push(itemId);
       enqueued++;
     }
 
@@ -189,7 +189,7 @@ async function runCrawl({ limit = 10, dryRun = false } = {}) {
   }
 
   for (const retry of retryList) {
-    await crawlQueue.pushOne(retry, { dedupe: false });
+    await crawlQueue.push(retry, { dedupe: false });
   }
 
   console.log({ processed, retried: retryList.length, enqueued });

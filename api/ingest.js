@@ -72,7 +72,6 @@ module.exports = async (req, res) => {
       targets: Array.isArray(body.targets) ? body.targets : [],
       source: body.source ?? {},
       items,
-      createdAt: new Date().toISOString(),
     };
     payload.batchId = buildHashBatchId(payload);
     payload.type = getType(payload.flags);
@@ -90,7 +89,6 @@ module.exports = async (req, res) => {
           pages: [],
           itemId,
           batchId: payload.batchId,
-          createdAt: new Date().toISOString(),
         };
 
         return item;
@@ -103,9 +101,9 @@ module.exports = async (req, res) => {
     for (const item of payload.items) {
       if (item.type === "social") {
         await socialStore.push(item);
-        await linkStore.push({ itemId: item.itemId, link: item.link });
+        await linkStore.push({ itemId: item.itemId, link: toStr(item.link) });
       } else await newsStore.push(item);
-      await crawlQueue.pushOne(`${item.itemId}|${item.type}|0`, {
+      await crawlQueue.push(`${item.itemId}|${item.type}|0`, {
         dedupe: false,
         status: "crawl",
       });

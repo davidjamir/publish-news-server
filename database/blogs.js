@@ -31,7 +31,7 @@ async function insertManyBlogs(payload) {
     await Promise.all(operations);
     return {
       success: true,
-      message: "Pages successfully saved/updated.",
+      message: "Blogs successfully saved/updated.",
     };
   } catch (error) {
     console.error("Error inserting documents:", error);

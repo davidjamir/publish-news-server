@@ -1,51 +1,21 @@
 // store.js
-const { redis } = require("./redis");
-const { safeParse } = require("../helper/safeParse");
 const { toStr } = require("../helper/toString");
-
-const BATCH_KEY_PREFIX = "batch";
-const BATCH_LIST = "batch:list";
-const BATCH_TTL_SECONDS = 10 * 24 * 60 * 60;
-
-const NEWS_KEY_PREFIX = "news:item";
-const NEWS_LIST = "news:item:list";
-const NEWS_TTL_SECONDS = 10 * 24 * 60 * 60;
-
-const SOCIAL_KEY_PREFIX = "social:item";
-const SOCIAL_LIST = "social:item:list";
-const SOCIAL_TTL_SECONDS = 10 * 24 * 60 * 60;
-
-const LINK_KEY_PREFIX = "link:item";
-const LINK_LIST = "link:item:list";
-const LINK_TTL_SECONDS = 10 * 24 * 60 * 60;
+const {
+  getOneItem,
+  getManyItems,
+  updateOneItem,
+  deleteOneItem,
+  deleteManyItems,
+  insertOneItem,
+} = require("../database/store");
 
 function makeStore({
-  keyPrefix, // vd: "batch" hoặc "news:item" hoặc "social:item"
-  keyList, // vd: "batch:list" hoặc "news:item:list"
-  ttlSeconds = null, // null = không TTL, hoặc số giây
-  maxList = 100000,
+  collectionName,
+  idField = "itemId",
   validatePayload, // optional: fn(payload)
   getIdFromPayload, // optional: fn(payload) => id
 } = {}) {
-  const KP = toStr(keyPrefix);
-  const KL = toStr(keyList);
-  if (!KP) throw new Error("keyPrefix is required");
-  if (!KL) throw new Error("keyList is required");
-
-  function keyOf(id) {
-    const s = toStr(id);
-    if (!s) throw new Error("id is required");
-    return `${KP}:${s}`;
-  }
-
-  async function fetchOrCleanup(id) {
-    const raw = await redis.get(keyOf(id));
-    if (!raw) {
-      await redis.lrem(KL, 0, String(id)); // dọn rác
-      return null;
-    }
-    return safeParse(raw);
-  }
+  if (!collectionName) throw new Error("collectionName is required");
 
   async function push(payload) {
     if (validatePayload) validatePayload(payload);
@@ -55,98 +25,48 @@ function makeStore({
     );
     if (!id) throw new Error("payload id is required");
 
-    // set KV (có TTL hoặc không)
-    if (ttlSeconds && Number(ttlSeconds) > 0) {
-      await redis.set(keyOf(id), JSON.stringify(payload), { ex: ttlSeconds });
-    } else {
-      await redis.set(keyOf(id), JSON.stringify(payload));
-    }
+    const filter = { [idField]: id };
+    const result = await insertOneItem(collectionName, filter, payload);
 
-    // cập nhật list newest-first, dedupe trong list
-    await redis
-      .multi()
-      .lrem(KL, 0, id)
-      .lpush(KL, id)
-      .ltrim(KL, 0, Math.max(maxList - 1, 0))
-      .exec();
-
-    return { ok: true, id, key: keyOf(id), keyList: KL };
+    return { ok: true, id, result };
   }
 
   async function get(id) {
-    return await fetchOrCleanup(id);
+    const filter = { [idField]: toStr(id) }; // Use dynamic ID based on collection
+    const document = await getOneItem(collectionName, filter);
+    return document ? document : null;
   }
 
+  // Delete a document by its ID
   async function del(id) {
-    const s = toStr(id);
-    if (!s) throw new Error("id is required");
-    await redis.del(keyOf(s));
-    await redis.lrem(KL, 0, s);
-    return { ok: true, id: s, deleted: true };
+    const filter = { [idField]: toStr(id) }; // Use dynamic ID
+    const result = await deleteOneItem(collectionName, filter);
+    return { ok: true, id, deleted: result.deletedCount > 0 };
   }
 
-  async function view(limit = 10) {
-    const n = Math.min(Math.max(Number(limit || 10), 1), 50);
-    const ids = await redis.lrange(KL, 0, n - 1);
-
-    const out = [];
-    for (const id of ids || []) {
-      const payload = await fetchOrCleanup(String(id));
-      if (payload) out.push(payload);
-    }
-    return out;
-  }
-
+  // Update a document by its ID
   async function update(id, patch = {}) {
-    const _id = toStr(id);
-    if (!_id) throw new Error("id is required");
-    if (!isObj(patch)) throw new Error("patch must be an object");
-
-    const cur = await get(_id);
-    if (!cur) return { ok: false, error: "Not found", id: _id };
-
-    const updated = {
-      ...cur,
+    const filter = { [idField]: id }; // Use dynamic ID
+    const result = await updateOneItem(collectionName, filter, {
       ...patch,
-      updatedAt: new Date().toISOString(),
-    };
-
-    await push(updated);
-    return { ok: true, id: _id };
+      updatedAt: new Date(),
+    });
+    return { ok: true, id, result };
   }
 
+  // Clear all documents from the collection
   async function clear() {
-    const ids = await redis.lrange(KL, 0, -1);
-
-    if (ids && ids.length) {
-      const keys = ids.map((id) => keyOf(id)).filter(Boolean);
-      if (keys.length) await redis.del(...keys);
-    }
-    await redis.del(KL);
-    return { ok: true, cleared: ids ? ids.length : 0 };
+    const result = await deleteManyItems(collectionName, {});
+    return { ok: true, cleared: result.deletedCount };
   }
 
-  async function updateStatus(id, status, extra = {}) {
-    const _id = toStr(id);
-    const st = toStr(status);
-    if (!_id) throw new Error("id is required");
-    if (!st) throw new Error("status is required");
-
-    const cur = await get(_id);
-    if (!cur) return { ok: false, error: "Not found", id: _id };
-
-    const updated = {
-      ...cur,
-      status: st,
-      ...extra,
-      updatedAt: new Date().toISOString(),
-    };
-
-    await push(updated);
-    return { ok: true, id: _id, status: st };
+  // Get all documents in the collection
+  async function view(limit = 10) {
+    const documents = await getManyItems(collectionName, {}, limit, true);
+    return documents;
   }
 
-  return { keyOf, push, get, view, del, update, clear, updateStatus };
+  return { push, get, del, update, clear, view };
 }
 
 function isObj(x) {
@@ -191,33 +111,27 @@ function validateItem(payload) {
 }
 
 const batchStore = makeStore({
-  keyPrefix: BATCH_KEY_PREFIX,
-  keyList: BATCH_LIST,
-  ttlSeconds: BATCH_TTL_SECONDS,
+  collectionName: "batches",
+  idField: "batchId",
   validatePayload: validateBatch,
   getIdFromPayload: (p) => p.batchId,
 });
 
 const newsStore = makeStore({
-  keyPrefix: NEWS_KEY_PREFIX,
-  keyList: NEWS_LIST,
-  ttlSeconds: NEWS_TTL_SECONDS,
+  collectionName: "news",
   validatePayload: validateItem,
   getIdFromPayload: (p) => p.itemId,
 });
 
 const socialStore = makeStore({
-  keyPrefix: SOCIAL_KEY_PREFIX,
-  keyList: SOCIAL_LIST,
-  ttlSeconds: SOCIAL_TTL_SECONDS,
+  collectionName: "social",
   validatePayload: validateItem,
   getIdFromPayload: (p) => p.itemId,
 });
 
 const linkStore = makeStore({
-  keyPrefix: LINK_KEY_PREFIX,
-  keyList: LINK_LIST,
-  ttlSeconds: LINK_TTL_SECONDS,
+  collectionName: "links",
+  idField: "link",
   getIdFromPayload: (p) => p.link,
 });
 

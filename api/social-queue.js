@@ -60,7 +60,7 @@ module.exports = async (req, res) => {
         }
 
         // nếu vẫn dùng payload {id,batchId} thì dùng kiểu cũ
-        const r = await socialQueue.pushOne(socialId, { dedupe: true });
+        const r = await socialQueue.push(socialId, { dedupe: true });
 
         return res.json({ ok: true, action, socialId, ...r });
       }

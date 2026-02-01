@@ -1,6 +1,5 @@
 const { redis } = require("./redis");
 const { safeParse } = require("../helper/safeParse");
-const { isoTimeZone } = require("../helper/timeZone");
 const { newsStore, socialStore } = require("../src/store");
 const { toStr } = require("../helper/toString");
 
@@ -8,6 +7,7 @@ const DEDUPE_TTL_SECONDS = 10 * 24 * 60 * 60;
 const NEWS_PREFIX = "news";
 const NEWS_QUEUE = "news:queue";
 const NEWS_DEDUPE = "news:dedupe";
+
 const SOCIAL_PREFIX = "social";
 const SOCIAL_QUEUE = "social:queue";
 const SOCIAL_DEDUPE = "social:dedupe";
@@ -54,7 +54,7 @@ function makeQueue({
     return `${dedupe}:${s}`;
   }
 
-  async function pushOne(
+  async function push(
     id,
     { dedupe: usededupe = true, status = "queued" } = {},
   ) {
@@ -81,7 +81,8 @@ function makeQueue({
 
     // update status sau khi enqueue thành công
     if (typeof onqueued === "function") {
-      await onqueued(getStatusId(itemId), status, {
+      await onqueued(getStatusId(itemId), {
+        status,
         queuedAt: new Date().toISOString(),
       });
     }
@@ -102,7 +103,7 @@ function makeQueue({
       const itemId = toStr(it);
       if (!itemId) continue;
 
-      const r = await pushOne(itemId, { dedupe: usededupe });
+      const r = await push(itemId, { dedupe: usededupe });
       if (r.skipped) skipped++;
       else queued++;
     }
@@ -233,7 +234,7 @@ function makeQueue({
     scheduleKey: toStr(scheduleKey),
 
     isAutoMode,
-    pushOne,
+    push,
     pushFromBatch,
     maybeEnqueueFromBatch,
     view,
@@ -253,7 +254,7 @@ const newsQueue = makeQueue({
   dedupePrefix: NEWS_DEDUPE,
   modeEnv: "NEWS_QUEUE_MODE",
   dedupeTtlSeconds: DEDUPE_TTL_SECONDS,
-  onqueued: (id, status, meta) => newsStore.updateStatus(id, status, meta),
+  onqueued: (id, meta) => newsStore.update(id, meta),
 });
 
 const socialQueue = makeQueue({
@@ -263,7 +264,7 @@ const socialQueue = makeQueue({
   dedupePrefix: SOCIAL_DEDUPE,
   modeEnv: "SOCIAL_QUEUE_MODE",
   dedupeTtlSeconds: DEDUPE_TTL_SECONDS,
-  onqueued: (id, status, meta) => socialStore.updateStatus(id, status, meta),
+  onqueued: (id, meta) => socialStore.update(id, meta),
   statusIdFromId: (id) => toStr(id).split("|")[0],
 });
 
@@ -273,7 +274,7 @@ const crawlQueue = makeQueue({
   dedupePrefix: CRAWL_DEDUPE,
   modeEnv: "CRAWL_QUEUE_MODE",
   dedupeTtlSeconds: DEDUPE_TTL_SECONDS,
-  onqueued: (rawId, status, meta) => {
+  onqueued: (rawId, meta) => {
     const [id, type, countRetry = "0"] = rawId.split("|");
     const retry = Number(countRetry) || 0;
     const payload = {
@@ -282,10 +283,10 @@ const crawlQueue = makeQueue({
     };
 
     if (type === "news") {
-      return newsStore.updateStatus(id, status, payload);
+      return newsStore.update(id, payload);
     }
     if (type === "social") {
-      return socialStore.updateStatus(id, status, payload);
+      return socialStore.update(id, payload);
     }
   },
 });
