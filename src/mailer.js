@@ -1,8 +1,8 @@
 const nodemailer = require("nodemailer");
 const { redis } = require("../src/redis");
-const { safeParse } = require("../helper/safeParse");
 const { getDayKeyAndTtlSec } = require("../helper/timeZone");
 const { toStr } = require("../helper/toString");
+const { getManyBlogs } = require("../database/blogs");
 
 const BLOG_TARGET_KEY = "blog-target";
 
@@ -43,12 +43,6 @@ function getTransporter(picked = {}) {
   });
 
   return _transporter;
-}
-
-async function loadTargets() {
-  const raw = await redis.get(BLOG_TARGET_KEY);
-  const data = safeParse(raw) || {};
-  return Array.isArray(data.targets) ? data.targets : [];
 }
 
 // Đang lấy theo round-daily cho dns. chưa có xây dựng theo dns riêng
@@ -140,20 +134,16 @@ async function sendMail(item = {}) {
 
   const requestedDns = normalizeTargetDnsList(item.targets);
 
-  const allTargets = await loadTargets();
+  const allTargets = await getManyBlogs({ enabled: true });
   if (!allTargets.length)
     throw new Error("No targets valid for post to website");
 
   let validList = [];
   if (requestedDns.length) {
-    const setDns = new Set(requestedDns);
-    validList = allTargets.filter(
-      (t) =>
-        t &&
-        t.enabled !== false &&
-        setDns.has(normDns(t.blogDns)) &&
-        toStr(t.blogEmail),
-    );
+    validList = await getManyBlogs({
+      enabled: true,
+      blogDns: { $in: requestedDns },
+    });
   }
 
   const picked = await pickBlogTargetRoundRobinDaily(
