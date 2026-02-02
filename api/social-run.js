@@ -6,7 +6,7 @@ const { sendFaceBookPost } = require("../src/facebook");
 const { toStr } = require("../helper/toString");
 const { sendNotify } = require("../src/notify");
 
-const MAX_PER_RUN = 3;
+const MAX_PER_RUN = 2;
 function parseMember(member) {
   const s = toStr(member);
   const i = s.indexOf("|");
