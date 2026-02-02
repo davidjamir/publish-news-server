@@ -6,7 +6,7 @@ module.exports = async (req, res) => {
   res.setHeader("Cache-Control", "no-store, max-age=0");
 
   if (!isAuthorized(req)) {
-    return j(res, { ok: false, error: "Unauthorized" }, 401);
+    return res.status(401).json({ ok: false, error: "Unauthorized" });
   }
   try {
     // GET: xem config đang lưu (default: masked)
