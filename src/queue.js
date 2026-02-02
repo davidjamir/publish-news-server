@@ -182,9 +182,9 @@ function makeQueue({
     });
 
     if (typeof onqueued === "function") {
-      await onqueued(getStatusId(member), "scheduled", {
+      await onqueued(getStatusId(member), {
+        status: "scheduled",
         scheduledAt: new Date().toISOString(),
-        scheduleAt: at,
       });
     }
 
@@ -217,7 +217,8 @@ function makeQueue({
       moved++;
 
       if (typeof onqueued === "function") {
-        await onqueued(getStatusId(member), "queued", {
+        await onqueued(getStatusId(member), {
+          status: "queued",
           queuedAt: new Date().toISOString(),
         });
       }
