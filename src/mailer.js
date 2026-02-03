@@ -131,6 +131,8 @@ function buildMailFromItem(item) {
 async function sendMail(item = {}) {
   if (!item) throw new Error("sendMail: item is required");
   const { subject, html } = buildMailFromItem(item);
+  if (html.length < 500)
+    throw new Error("Length content html not valid for post to website");
 
   const requestedDns = normalizeTargetDnsList(item.targets);
 

@@ -43,6 +43,10 @@ module.exports = async (req, res) => {
       } catch (e) {
         status = "failed";
         error = String(e?.message || e);
+        await newsStore.update(id, {
+          status: "Failed",
+          reason: error,
+        });
       }
 
       results.push({ newsId: id, status, error });
