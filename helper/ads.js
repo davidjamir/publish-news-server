@@ -27,7 +27,7 @@ function getAdsByDomain(domain) {
   if (!Array.isArray(ads) || !ads.length) return [];
 
   return ads.map((ad, i) =>
-    `<div class="ads-inline ads-inline-${i + 1}" data-domain="${origin}" data-ad-index="${i + 1}" style="display:block; margin:2px 0; padding:0; text-align:center; clear:both; ">
+    `<div class="ads-inline ads-inline-${i + 1}" data-domain="${origin}" data-ad-index="${i + 1}" style="display:block; margin:0px 0; padding:0; text-align:center; clear:both; ">
       ${ad}
     </div>`.trim(),
   );
