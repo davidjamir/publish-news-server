@@ -21,11 +21,9 @@ function normalizeTargetDnsList(input) {
   return Array.from(new Set(out.filter(Boolean)));
 }
 
-let _transporter = null;
+const transporterCache = new Map();
 
 function getTransporter(picked = {}) {
-  if (_transporter) return _transporter;
-
   const user = toStr(picked.blogUser);
   let pass = toStr(picked.blogPassword);
 
@@ -35,14 +33,21 @@ function getTransporter(picked = {}) {
   // nếu copy dạng "xxxx xxxx xxxx xxxx" thì strip hết whitespace
   pass = pass.replace(/\s+/g, "");
 
-  _transporter = nodemailer.createTransport({
+  const cacheKey = `${user}@smtp.gmail.com`;
+
+  if (transporterCache.has(cacheKey)) {
+    return transporterCache.get(cacheKey);
+  }
+
+  const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 465,
     secure: true,
     auth: { user, pass },
   });
 
-  return _transporter;
+  transporterCache.set(cacheKey, transporter);
+  return transporter;
 }
 
 // Đang lấy theo round-daily cho dns. chưa có xây dựng theo dns riêng
