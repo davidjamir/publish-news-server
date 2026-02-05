@@ -1,7 +1,7 @@
 const cheerio = require("cheerio");
 
 const ADS_BY_DOMAIN = {
-  "thetiemnews.us": [
+  "hotzxgirl.online": [
     "<script>/* ad 1 */</script>",
     "<script>/* ad 2 */</script>",
     "<script>/* ad 3 */</script>",
