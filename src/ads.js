@@ -25,6 +25,10 @@ async function getAdsByDomain(domain) {
   );
 }
 
+const MIN_DISTANCE = 500;
+const MIN_CHARS_BEFORE_AD = 300;
+const MIN_CHARS_FROM_END = 250;
+
 async function injectAdsForBlog(html, domain) {
   if (!html || !domain) return html;
 
@@ -34,11 +38,15 @@ async function injectAdsForBlog(html, domain) {
   const adPool = [...ads];
   const $ = cheerio.load(html, { decodeEntities: false });
   const totalChars = $("body").text().trim().length;
+  if (totalChars < MIN_CHARS_BEFORE_AD + MIN_CHARS_FROM_END + MIN_DISTANCE)
+    return html;
 
-  const MAX_ADS = 3;
-  const MIN_DISTANCE = 600;
-  const MIN_CHARS_BEFORE_AD = 300;
-  const MIN_CHARS_FROM_END = 250;
+  const MAX_ADS = Math.max(
+    0,
+    Math.floor(
+      (totalChars - MIN_CHARS_BEFORE_AD - MIN_CHARS_FROM_END) / MIN_DISTANCE,
+    ),
+  );
 
   const usedPositions = [];
   let inserted = 0;
