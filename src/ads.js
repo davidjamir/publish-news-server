@@ -15,7 +15,7 @@ async function getAdsByDomain(domain) {
   // xoá 1 tầng subdomain
   const origin = parts.slice(1).join(".");
   // TODO: xử lý sau (DB / config / switch domain)
-  const ads = await getManyAds({ domain: origin });
+  const ads = await getManyAds({ domain: origin, enabled: true });
   if (!Array.isArray(ads) || !ads.length) return [];
 
   return ads.map((ad, i) =>
