@@ -40,6 +40,35 @@ async function injectAdsForBlog(html, domain) {
   const usedPositions = [];
   let inserted = 0;
 
+  function getInsertTarget(img) {
+    const $img = $(img);
+
+    // Nếu img nằm trong figure → lấy figure
+    const $figure = $img.closest("figure");
+    if ($figure.length) return $figure;
+
+    // Nếu img nằm trong p → lấy p
+    const $p = $img.closest("p");
+    if ($p.length) return $p;
+
+    // Nếu img nằm trong div block → lấy div gần nhất
+    const $div = $img.closest("div");
+    if ($div.length) return $div;
+
+    // fallback: chính nó
+    return $img;
+  }
+
+  function getTextInsertTarget(el) {
+    const $el = $(el);
+
+    // p thường là block-level rồi
+    if ($el.is("p")) return $el;
+
+    // fallback (hiếm)
+    return $el.closest("div, section, article").first();
+  }
+
   function getCharPosUntil(idx, list) {
     let sum = 0;
     for (let i = 0; i < idx; i++) {
@@ -63,7 +92,9 @@ async function injectAdsForBlog(html, domain) {
   const images = $("img")
     .filter((_, el) => {
       const $el = $(el);
-      if ($el.closest("a, figure, iframe").length) return false;
+      if ($el.closest("a, button, iframe, nav, aside").length) return false;
+
+      if ($el.attr("aria-hidden") === "true") return false;
       return true;
     })
     .toArray();
@@ -77,7 +108,9 @@ async function injectAdsForBlog(html, domain) {
     const ad = pickAdOnce();
     if (!ad) break;
 
-    $(images[i]).after(ad);
+    const $target = getInsertTarget(images[i]);
+    $target.after(ad);
+
     usedPositions.push(pos);
     inserted++;
   }
@@ -85,7 +118,13 @@ async function injectAdsForBlog(html, domain) {
   /* ========= PASS 2: text ========= */
   if (inserted < MAX_ADS) {
     const texts = $("p, h2, h3")
-      .filter((_, el) => $(el).text().trim().length >= 50)
+      .filter((_, el) => {
+        const $el = $(el);
+        if ($el.is("p")) {
+          return $el.text().trim().length >= 80;
+        }
+        return false;
+      })
       .toArray();
 
     for (let i = 0; i < texts.length && inserted < MAX_ADS; i++) {
@@ -97,7 +136,9 @@ async function injectAdsForBlog(html, domain) {
       const ad = pickAdOnce();
       if (!ad) break;
 
-      $(texts[i]).after(ad);
+      const $target = getTextInsertTarget(texts[i]);
+      $target.after(ad);
+
       usedPositions.push(pos);
       inserted++;
     }
