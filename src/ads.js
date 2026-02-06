@@ -33,12 +33,17 @@ async function injectAdsForBlog(html, domain) {
 
   const adPool = [...ads];
   const $ = cheerio.load(html, { decodeEntities: false });
+  const totalChars = $("body").text().trim().length;
 
-  const MIN_DISTANCE = 600;
   const MAX_ADS = 3;
+  const MIN_DISTANCE = 600;
+  const MIN_CHARS_BEFORE_AD = 300;
+  const MIN_CHARS_FROM_END = 250;
 
   const usedPositions = [];
   let inserted = 0;
+
+  /* ================== HELPERS ================== */
 
   function getInsertTarget(img) {
     const $img = $(img);
@@ -71,14 +76,25 @@ async function injectAdsForBlog(html, domain) {
 
   function getCharPosUntil(idx, list) {
     let sum = 0;
+
     for (let i = 0; i < idx; i++) {
       const $el = $(list[i]);
-      sum += $el.is("img") ? 120 : $el.text().trim().length;
+
+      if ($el.is("img")) {
+        sum += 120; // heuristic cho ảnh
+      } else {
+        sum += $el.text().trim().length;
+      }
     }
+
     return sum;
   }
 
   function canInsertAt(pos) {
+    if (totalChars < MIN_CHARS_BEFORE_AD + 200) return false;
+    if (pos < MIN_CHARS_BEFORE_AD) return false;
+    if (totalChars && pos > totalChars - MIN_CHARS_FROM_END) return false;
+
     return usedPositions.every((p) => Math.abs(p - pos) >= MIN_DISTANCE);
   }
 
@@ -102,7 +118,7 @@ async function injectAdsForBlog(html, domain) {
   for (let i = 0; i < images.length && inserted < MAX_ADS; i++) {
     if (!adPool.length) break;
 
-    const pos = getCharPosUntil(i, images);
+    const pos = getCharPosUntil(i, images) + 120;
     if (!canInsertAt(pos)) continue;
 
     const ad = pickAdOnce();
@@ -120,17 +136,17 @@ async function injectAdsForBlog(html, domain) {
     const texts = $("p, h2, h3")
       .filter((_, el) => {
         const $el = $(el);
-        if ($el.is("p")) {
-          return $el.text().trim().length >= 80;
-        }
-        return false;
+        if ($el.closest("aside, nav, blockquote").length) return false;
+        return $el.text().trim().length >= 80;
       })
       .toArray();
 
     for (let i = 0; i < texts.length && inserted < MAX_ADS; i++) {
       if (!adPool.length) break;
 
-      const pos = getCharPosUntil(i, texts);
+      const $el = $(texts[i]);
+      const pos = getCharPosUntil(i, texts) + $el.text().trim().length;
+
       if (!canInsertAt(pos)) continue;
 
       const ad = pickAdOnce();
