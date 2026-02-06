@@ -3,7 +3,7 @@ const { redis } = require("../src/redis");
 const { getDayKeyAndTtlSec } = require("../helper/timeZone");
 const { toStr } = require("../helper/toString");
 const { getManyBlogs } = require("../database/blogs");
-const { injectAdsForBlog } = require("../helper/ads");
+const { injectAdsForBlog } = require("../src/ads");
 
 const BLOG_TARGET_KEY = "blog-target";
 
@@ -158,7 +158,7 @@ async function sendMail(item = {}) {
     validList.length ? validList : allTargets,
   );
 
-  const content = injectAdsForBlog(html, picked.blogDns);
+  const content = await injectAdsForBlog(html, picked.blogDns);
 
   const transporter = getTransporter(picked);
   const from = toStr(picked.blogUser);

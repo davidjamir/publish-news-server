@@ -1,15 +1,7 @@
 const cheerio = require("cheerio");
+const { getManyAds } = require("../database/ads");
 
-const ADS_BY_DOMAIN = {
-  "hotzxgirl.online": [
-    "<script>/* ad 1 */</script>",
-    "<script>/* ad 2 */</script>",
-    "<script>/* ad 3 */</script>",
-  ],
-  "another-site.net": ["<div class='ads ads-inline'>ANOTHER AD</div>"],
-};
-
-function getAdsByDomain(domain) {
+async function getAdsByDomain(domain) {
   if (!domain) return [];
 
   const host = domain
@@ -23,20 +15,20 @@ function getAdsByDomain(domain) {
   // xoá 1 tầng subdomain
   const origin = parts.slice(1).join(".");
   // TODO: xử lý sau (DB / config / switch domain)
-  const ads = ADS_BY_DOMAIN[origin];
+  const ads = await getManyAds({ domain: origin });
   if (!Array.isArray(ads) || !ads.length) return [];
 
   return ads.map((ad, i) =>
     `<div class="ads-inline ads-inline-${i + 1}" data-domain="${origin}" data-ad-index="${i + 1}" style="display:block; margin:0px 0; padding:0; text-align:center; clear:both; ">
-      ${ad}
+      ${ad.content}
     </div>`.trim(),
   );
 }
 
-function injectAdsForBlog(html, domain) {
+async function injectAdsForBlog(html, domain) {
   if (!html || !domain) return html;
 
-  const ads = getAdsByDomain(domain);
+  const ads = await getAdsByDomain(domain);
   if (!Array.isArray(ads) || !ads.length) return html;
 
   const adPool = [...ads];
