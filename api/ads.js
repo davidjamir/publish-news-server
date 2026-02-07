@@ -1,6 +1,7 @@
-const { isAuthorized } = require("../helper/isAuthorized");
+const { isAuthorized, isPassword } = require("../helper/isAuthorized");
 const { toStr } = require("../helper/toString");
-const { getAllAds, insertManyAds } = require("../database/ads");
+const { insertManyAds } = require("../database/ads");
+const { renderAdsForm } = require("../src/ads");
 
 function normDns(s) {
   return toStr(s).toLowerCase();
@@ -9,21 +10,15 @@ function normDns(s) {
 module.exports = async (req, res) => {
   res.setHeader("Cache-Control", "no-store, max-age=0");
 
-  if (!isAuthorized(req)) {
-    return res.status(401).json({ ok: false, error: "Unauthorized" });
-  }
   try {
     if (req.method === "GET") {
-      const ads = await getAllAds();
-
-      return res.json({
-        ok: true,
-        count: ads.length,
-        ads,
-      });
+      return res.send(renderAdsForm());
     }
 
     if (req.method === "POST") {
+      if (!isAuthorized(req) && !isPassword(req)) {
+        return res.status(401).json({ ok: false, error: "Unauthorized" });
+      }
       const body = req.body || {};
       const ads = body.ads;
 
