@@ -244,7 +244,7 @@ async function sendMail(item = {}) {
 
   await increaseQuota({
     type: "subdomain",
-    key: picked.blogDns,
+    domain: picked.blogDns,
     user: picked.blogUser,
   });
 
