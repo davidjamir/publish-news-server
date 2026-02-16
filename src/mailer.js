@@ -1,11 +1,12 @@
 const nodemailer = require("nodemailer");
-const { redis } = require("../src/redis");
-const { getDayKeyAndTtlSec } = require("../helper/timeZone");
 const { toStr } = require("../helper/toString");
 const { getManyBlogs } = require("../database/blogs");
 const { injectAdsForBlog } = require("../src/ads");
-
-const BLOG_TARGET_KEY = "blog-target";
+const {
+  getQuotasToday,
+  increaseQuota,
+  extractOriginFromSubdomain,
+} = require("../database/quotas");
 
 function normDns(x) {
   return toStr(x).toLowerCase().replace(/\s+/g, "");
@@ -51,22 +52,64 @@ function getTransporter(picked = {}) {
   return transporter;
 }
 
-// Đang lấy theo round-daily cho dns. chưa có xây dựng theo dns riêng
+async function filterValidTargets(targets = []) {
+  const subdomains = [...new Set(targets.map((t) => t.blogDns))];
+  const origins = [...new Set(subdomains.map(extractOriginFromSubdomain))];
 
-async function pickBlogTargetRoundRobinDaily(targets = []) {
+  const subQuotaMap = await getQuotasToday("subdomain", subdomains);
+  const originQuotaMap = await getQuotasToday("origin", origins);
+
+  return targets.filter((target) => {
+    const sub = target.blogDns;
+    const origin = extractOriginFromSubdomain(sub);
+
+    const subQuota = subQuotaMap.get(sub);
+    const originQuota = originQuotaMap.get(origin);
+
+    const subCount = subQuota?.count || 0;
+    const subLimit = subQuota?.limit || 101; // default nếu chưa có
+
+    const originCount = originQuota?.count || 0;
+    const originLimit = originQuota?.limit || 501;
+
+    return subCount < subLimit && originCount < originLimit;
+  });
+}
+
+function pickWeightedRandom(targets = []) {
+  let totalWeight = 0;
+
+  for (const t of targets) {
+    totalWeight += Number(t.blogPriority) || 1;
+  }
+
+  let rand = Math.random() * totalWeight;
+
+  for (const t of targets) {
+    rand -= Number(t.blogPriority) || 1;
+    if (rand <= 0) {
+      return t;
+    }
+  }
+
+  return targets[0]; // fallback
+}
+
+// Đang lấy theo round-daily cho dns. chưa có xây dựng theo dns riêng
+async function pickBlogTargetWithQuota(targets = []) {
   if (!Array.isArray(targets)) throw new Error("Targets must be an array");
 
   const list = targets.filter(
     (t) => t && t.enabled !== false && toStr(t.blogDns) && toStr(t.blogEmail), // đúng field
   );
-
   if (!list.length) throw new Error("No enabled blog targets in 'blog-target'");
-  const { yyyymmdd, ttlSec } = getDayKeyAndTtlSec(); // UTC+7 helper của mày
-  const rrKey = `${BLOG_TARGET_KEY}:rr:${yyyymmdd}`;
 
-  const counter = await redis.incr(rrKey);
-  if (counter === 1) await redis.expire(rrKey, ttlSec);
-  const target = list[(counter - 1) % list.length];
+  const validTargets = await filterValidTargets(list);
+  if (!validTargets.length) {
+    throw new Error("All targets exceeded quota");
+  }
+
+  const target = pickWeightedRandom(validTargets);
 
   return {
     blogDns: normDns(target.blogDns),
@@ -74,6 +117,18 @@ async function pickBlogTargetRoundRobinDaily(targets = []) {
     blogUser: toStr(target.blogUser),
     blogPassword: toStr(target.blogPassword),
   };
+}
+
+async function pickWithFallback(validList, allTargets) {
+  try {
+    if (validList.length) {
+      return await pickBlogTargetWithQuota(validList);
+    }
+  } catch (_) {
+    console.log("Not valid for list domains setup!");
+  }
+
+  return await pickBlogTargetWithQuota(allTargets);
 }
 
 function escapeHtml(s) {
@@ -154,9 +209,8 @@ async function sendMail(item = {}) {
     });
   }
 
-  const picked = await pickBlogTargetRoundRobinDaily(
-    validList.length ? validList : allTargets,
-  );
+  const picked = await pickWithFallback(validList, allTargets);
+  if (!picked) throw new Error("sendMail: not founded target valid");
 
   const content = await injectAdsForBlog(html, picked.blogDns);
 
@@ -170,6 +224,11 @@ async function sendMail(item = {}) {
     to,
     subject,
     html: content,
+  });
+
+  await increaseQuota({
+    type: "subdomain",
+    key: picked.blogDns,
   });
 
   return {

@@ -124,7 +124,6 @@ async function commitScheduleForPage(pageId, scheduleAtMs) {
 }
 
 module.exports = {
-  // redis state
   getLastScheduledAt,
   setLastScheduledAt,
 

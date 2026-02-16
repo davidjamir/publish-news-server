@@ -53,6 +53,7 @@ module.exports = async (req, res) => {
           blogEmail,
           blogUser: t.blogUser,
           blogPassword: t.blogPassword,
+          blogPriority: t.blogPriority,
           enabled: t.enabled,
         });
       }
