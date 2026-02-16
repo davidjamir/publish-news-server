@@ -49,20 +49,21 @@ async function getQuotasToday(type, domains = []) {
   return map;
 }
 
-async function increaseQuota({ type, key, user, limit = 100 }) {
+async function increaseQuota({ type, key, user, domain, limit = 100 }) {
   const col = await getCollection();
   const date = getDateKey();
   const now = new Date();
 
   const ops = [];
 
-  function buildDoc(t, k, l) {
+  function buildDoc({ type, key, domain, limit }) {
     return {
-      _id: buildQuotaId(t, k, date),
-      type: t,
-      key: k,
+      _id: buildQuotaId(type, key, date),
+      type,
+      key,
+      domain,
+      limit,
       date,
-      limit: l,
       createdAt: now,
     };
   }
@@ -74,7 +75,7 @@ async function increaseQuota({ type, key, user, limit = 100 }) {
       {
         $inc: { count: 1 },
         $set: { updatedAt: now },
-        $setOnInsert: buildDoc(type, `${user}:${key}`, limit),
+        $setOnInsert: buildDoc({ type, key: `${user}:${key}`, domain, limit }),
       },
       { upsert: true },
     ),
@@ -90,7 +91,12 @@ async function increaseQuota({ type, key, user, limit = 100 }) {
         {
           $inc: { count: 1 },
           $set: { updatedAt: now },
-          $setOnInsert: buildDoc("origin", `${user}:${origin}`, 500),
+          $setOnInsert: buildDoc({
+            type: "origin",
+            key: `${user}:${origin}`,
+            domain: origin,
+            limit: 500,
+          }),
         },
         { upsert: true },
       ),
