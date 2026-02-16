@@ -62,7 +62,6 @@ async function increaseQuota({ type, key, limit = 100 }) {
       type: t,
       key: k,
       date,
-      count: 1,
       limit: l,
       createdAt: now,
       updatedAt: now,
