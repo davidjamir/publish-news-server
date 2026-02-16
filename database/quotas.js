@@ -74,7 +74,7 @@ async function increaseQuota({ type, key, user, limit = 100 }) {
       {
         $inc: { count: 1 },
         $set: { updatedAt: now },
-        $setOnInsert: buildDoc(type, `${user}:${key}`, limit + 1),
+        $setOnInsert: buildDoc(type, `${user}:${key}`, limit),
       },
       { upsert: true },
     ),
@@ -90,7 +90,7 @@ async function increaseQuota({ type, key, user, limit = 100 }) {
         {
           $inc: { count: 1 },
           $set: { updatedAt: now },
-          $setOnInsert: buildDoc("origin", `${user}:${origin}`, 501),
+          $setOnInsert: buildDoc("origin", `${user}:${origin}`, 500),
         },
         { upsert: true },
       ),

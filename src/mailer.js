@@ -88,7 +88,7 @@ async function filterValidTargets(targets = []) {
     const originCount = originQuota?.count || 0;
     const originLimit = originQuota?.limit || 501;
 
-    return subCount < subLimit && originCount < originLimit;
+    return subCount <= subLimit && originCount <= originLimit;
   });
 }
 
