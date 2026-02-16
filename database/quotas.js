@@ -26,7 +26,7 @@ async function getCollection() {
 
 // GET MANY QUOTAS TODAY (BY FILTER)
 
-async function getQuotasToday(type, domains = []) {
+async function getQuotasToday(type, keys = []) {
   const col = await getCollection();
   const date = getDateKey();
 
@@ -35,8 +35,8 @@ async function getQuotasToday(type, domains = []) {
     type,
   };
 
-  if (Array.isArray(domains) && domains.length > 0) {
-    query.key = { $in: domains };
+  if (Array.isArray(keys) && keys.length > 0) {
+    query.key = { $in: keys };
   }
 
   const docs = await col.find(query).toArray();
