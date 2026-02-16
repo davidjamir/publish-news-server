@@ -56,7 +56,7 @@ async function increaseQuota({ type, key, limit = 100 }) {
 
   const ops = [];
 
-  function buildDoc(t, k, l, p) {
+  function buildDoc(t, k, l) {
     return {
       _id: buildQuotaId(t, k, date),
       type: t,
