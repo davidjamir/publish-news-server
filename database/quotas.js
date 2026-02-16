@@ -49,7 +49,7 @@ async function getQuotasToday(type, domains = []) {
   return map;
 }
 
-async function increaseQuota({ type, key, limit = 100 }) {
+async function increaseQuota({ type, key, user, limit = 100 }) {
   const col = await getCollection();
   const date = getDateKey();
   const now = new Date();
@@ -70,11 +70,11 @@ async function increaseQuota({ type, key, limit = 100 }) {
   // 1️⃣ tăng chính nó (có upsert)
   ops.push(
     col.updateOne(
-      { _id: buildQuotaId(type, key, date) },
+      { _id: buildQuotaId(type, `${user}:${key}`, date) },
       {
         $inc: { count: 1 },
         $set: { updatedAt: now },
-        $setOnInsert: buildDoc(type, key, limit + 1),
+        $setOnInsert: buildDoc(type, `${user}:${key}`, limit + 1),
       },
       { upsert: true },
     ),
@@ -86,11 +86,11 @@ async function increaseQuota({ type, key, limit = 100 }) {
 
     ops.push(
       col.updateOne(
-        { _id: buildQuotaId("origin", origin, date) },
+        { _id: buildQuotaId("origin", `${user}:${origin}`, date) },
         {
           $inc: { count: 1 },
           $set: { updatedAt: now },
-          $setOnInsert: buildDoc("origin", origin, 501),
+          $setOnInsert: buildDoc("origin", `${user}:${origin}`, 501),
         },
         { upsert: true },
       ),

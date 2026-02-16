@@ -53,18 +53,34 @@ function getTransporter(picked = {}) {
 }
 
 async function filterValidTargets(targets = []) {
-  const subdomains = [...new Set(targets.map((t) => t.blogDns))];
-  const origins = [...new Set(subdomains.map(extractOriginFromSubdomain))];
+  const subKeys = [];
+  const originKeys = [];
 
-  const subQuotaMap = await getQuotasToday("subdomain", subdomains);
-  const originQuotaMap = await getQuotasToday("origin", origins);
+  for (const t of targets) {
+    const user = t.blogUser;
+    const sub = t.blogDns;
+    const origin = extractOriginFromSubdomain(sub);
+
+    subKeys.push(`${user}:${sub}`);
+    originKeys.push(`${user}:${origin}`);
+  }
+
+  const uniqueSubKeys = [...new Set(subKeys)];
+  const uniqueOriginKeys = [...new Set(originKeys)];
+
+  const subQuotaMap = await getQuotasToday("subdomain", uniqueSubKeys);
+  const originQuotaMap = await getQuotasToday("origin", uniqueOriginKeys);
 
   return targets.filter((target) => {
+    const user = target.blogUser;
     const sub = target.blogDns;
     const origin = extractOriginFromSubdomain(sub);
 
-    const subQuota = subQuotaMap.get(sub);
-    const originQuota = originQuotaMap.get(origin);
+    const subKey = `${user}:${sub}`;
+    const originKey = `${user}:${origin}`;
+
+    const subQuota = subQuotaMap.get(subKey);
+    const originQuota = originQuotaMap.get(originKey);
 
     const subCount = subQuota?.count || 0;
     const subLimit = subQuota?.limit || 101; // default nếu chưa có
@@ -229,6 +245,7 @@ async function sendMail(item = {}) {
   await increaseQuota({
     type: "subdomain",
     key: picked.blogDns,
+    user: picked.blogUser,
   });
 
   return {
