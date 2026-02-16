@@ -39,7 +39,7 @@ async function getQuotasToday(type, domains = []) {
     query.key = { $in: domains };
   }
 
-  const docs = col.find(query).toArray();
+  const docs = await col.find(query).toArray();
   const map = new Map();
 
   for (const doc of docs) {

@@ -196,6 +196,7 @@ async function sendMail(item = {}) {
     throw new Error("Length content html not valid for post to website");
 
   const requestedDns = normalizeTargetDnsList(item.targets);
+  console.log(requestedDns)
 
   const allTargets = await getManyBlogs({ enabled: true });
   if (!allTargets.length)
@@ -211,6 +212,7 @@ async function sendMail(item = {}) {
 
   const picked = await pickWithFallback(validList, allTargets);
   if (!picked) throw new Error("sendMail: not founded target valid");
+  console.log(picked);
 
   const content = await injectAdsForBlog(html, picked.blogDns);
 
