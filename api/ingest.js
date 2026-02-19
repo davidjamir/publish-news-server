@@ -3,13 +3,14 @@ const { isAuthorized } = require("../helper/isAuthorized");
 const { buildHashBatchId, buildHashItemId } = require("../src/crypto");
 const { getFlagValue } = require("../helper/getFlagValue");
 const { toStr } = require("../helper/toString");
+const { getOneBlog } = require("../database/blogs");
+const { crawlQueue } = require("../src/queue");
 const {
   batchStore,
   newsStore,
   socialStore,
   linkStore,
 } = require("../src/store");
-const { crawlQueue } = require("../src/queue");
 
 const getType = (flags = [], defaultType = "news") => {
   const t = getFlagValue(flags, "type", defaultType).toLowerCase();
@@ -100,6 +101,12 @@ module.exports = async (req, res) => {
 
     for (const item of payload.items) {
       if (item.type === "social") {
+        const host = new URL(item.link).host;
+        const blog = await getOneBlog({ blogDns: host });
+        if (!blog) continue;
+
+        item.wrapLink =
+          `https://${blog.wrapDomain}` + url.pathname + url.search;
         await socialStore.push(item);
         await linkStore.push({ itemId: item.itemId, link: toStr(item.link) });
       } else await newsStore.push(item);
