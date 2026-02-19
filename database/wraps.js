@@ -20,37 +20,83 @@ async function getCollection() {
 async function insertManyWraps(payload) {
   try {
     const col = await getCollection();
-    const operations = payload.map((item) => {
-      const { wrap_host, prefix } = parseWrapDomain(item.wrapDomain);
-      if (!wrap_host || !prefix) {
-        throw new Error("Invalid blogDns format");
-      }
+    const operations = payload.map(async (item) => {
+      try {
+        if (!item.wrapDomain) {
+          return {
+            status: "skipped",
+            blogDns: item.blogDns,
+            reason: "No wrapDomain",
+          };
+        }
 
-      const filter = { wrap_host, prefix };
+        const parsed = parseWrapDomain(item.wrapDomain);
+        const wrap_host = parsed.wrap_host.toLowerCase().trim();
+        const prefix = parsed.prefix.toLowerCase().trim();
 
-      const update = {
-        $set: {
+        if (!wrap_host || !prefix) {
+          throw new Error("Invalid wraps domain format");
+        }
+
+        const filter = { wrap_host, prefix };
+
+        const update = {
+          $set: {
+            wrap_host,
+            prefix,
+            target_host: item.blogDns, // nhớ gửi lên
+            updatedAt: new Date(),
+          },
+          $setOnInsert: {
+            createdAt: new Date(),
+          },
+        };
+
+        const result = await col.updateOne(filter, update, { upsert: true });
+
+        return {
+          status: "success",
+          blogDns: item.blogDns,
           wrap_host,
           prefix,
-          target_host: item.blogDns, // nhớ gửi lên
-          updatedAt: new Date(),
-        },
-        $setOnInsert: {
-          createdAt: new Date(),
-        },
-      };
-
-      return col.updateOne(filter, update, { upsert: true });
+          upsertedId: result.upsertedId || null,
+          modifiedCount: result.modifiedCount,
+        };
+      } catch (error) {
+        return {
+          status: "error",
+          blogDns: item.blogDns,
+          wrapDomain: item.wrapDomain,
+          error:
+            error.code === 11000
+              ? "Duplicate wrap_host + prefix"
+              : error.message,
+        };
+      }
     });
 
-    await Promise.all(operations);
+    const results = await Promise.all(operations);
+    const success = results.filter((r) => r.status === "success");
+    const errors = results.filter((r) => r.status === "error");
+    const skipped = results.filter((r) => r.status === "skipped");
+
     return {
       success: true,
-      message: "Wraps successfully saved/updated.",
+      summary: {
+        total: payload.length,
+        success: success.length,
+        errors: errors.length,
+        skipped: skipped.length,
+      },
+      data: {
+        success,
+        errors,
+        skipped,
+      },
     };
   } catch (error) {
-    console.error("Error inserting documents:", error);
-    return { success: false };
+    console.error("Fatal error:", error);
+    return { success: false, error: error.message };
   }
 }
 
