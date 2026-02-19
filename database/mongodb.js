@@ -31,6 +31,11 @@ async function getDb() {
   await createTTLIndex(_db.collection("batches"));
   await createTTLIndex(_db.collection("links"));
   await createTTLIndex(_db.collection("quotas"));
+
+  // Tạo Index cho wrap links
+  // await _db
+  //   .collection("wraps")
+  //   .createIndex({ wrap_host: 1, prefix: 1 }, { unique: true });
   return _db;
 }
 

@@ -1,6 +1,7 @@
 const { isAuthorized } = require("../helper/isAuthorized");
 const { toStr } = require("../helper/toString");
 const { getAllBlogs, insertManyBlogs } = require("../database/blogs");
+const { insertManyWraps } = require("../database/wraps");
 
 function normDns(s) {
   return toStr(s).toLowerCase();
@@ -54,11 +55,13 @@ module.exports = async (req, res) => {
           blogUser: t.blogUser,
           blogPassword: t.blogPassword,
           blogPriority: t.blogPriority,
+          wrapDomain: t.wrapDomain,
           enabled: t.enabled,
         });
       }
 
       await insertManyBlogs(results);
+      await insertManyWraps(results);
 
       return res.json({
         ok: true,
