@@ -50,6 +50,7 @@ module.exports = async (req, res) => {
     return res.status(401).json({ ok: false, error: "Unauthorized" });
   }
 
+  const REQUIRE_WRAP_LINK = proccess.env.REQUIRE_WRAP_LINK === "true";
   try {
     const body = req.body || {};
     if (!body || typeof body !== "object") {
@@ -101,12 +102,14 @@ module.exports = async (req, res) => {
 
     for (const item of payload.items) {
       if (item.type === "social") {
-        const host = new URL(item.link).host;
-        const blog = await getOneBlog({ blogDns: host });
-        if (!blog) continue;
+        if (REQUIRE_WRAP_LINK) {
+          const host = new URL(item.link).host;
+          const blog = await getOneBlog({ blogDns: host });
+          if (!blog) continue;
 
-        item.wrapLink =
-          `https://${blog.wrapDomain}` + url.pathname + url.search;
+          item.wrapLink =
+            `https://${blog.wrapDomain}` + url.pathname + url.search;
+        }
         await socialStore.push(item);
         await linkStore.push({ itemId: item.itemId, link: toStr(item.link) });
       } else await newsStore.push(item);

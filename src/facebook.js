@@ -79,7 +79,7 @@ function buildFaceBookPost(item = {}, tags = []) {
   const title = toStr(item?.title);
   const crawlSnippet = toStr(item?.crawlSnippet);
   const snippet = toStr(item?.snippet);
-  const link = toStr(item?.link);
+  const link = toStr(item?.wrapLink || item?.link);
   const imageUrl = toStr(item?.featuredImage);
   const hashtags = Array.isArray(tags)
     ? pickRandomTags(tags, MAX_NUMBER_TAGS)
@@ -226,7 +226,7 @@ async function sendFaceBookPost(item, opts = {}) {
       }
 
       let commentRes = null;
-      const link = toStr(payload.link);
+      const link = toStr(payload.wrapLink || payload.link);
       if (link) {
         if (!postId)
           throw new Error("sendPost: missing postId, cannot comment");
