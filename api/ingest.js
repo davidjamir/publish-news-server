@@ -45,7 +45,7 @@ module.exports = async (req, res) => {
   if (req.method !== "POST") {
     return res.status(405).json({ ok: false, error: "Method Not Allowed" });
   }
-
+  console.log("Ingest API Publish Server News");
   if (!isAuthorized(req)) {
     return res.status(401).json({ ok: false, error: "Unauthorized" });
   }
