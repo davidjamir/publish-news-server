@@ -1,5 +1,5 @@
 // api/news-ingest.js
-const { isAuthorized } = require("../helper/isAuthorized");
+const { isAuthorized, isWrapLink } = require("../helper/isAuthorized");
 const { buildHashBatchId, buildHashItemId } = require("../src/crypto");
 const { getFlagValue } = require("../helper/getFlagValue");
 const { toStr } = require("../helper/toString");
@@ -50,7 +50,6 @@ module.exports = async (req, res) => {
     return res.status(401).json({ ok: false, error: "Unauthorized" });
   }
 
-  const REQUIRE_WRAP_LINK = proccess.env.REQUIRE_WRAP_LINK === "true";
   try {
     const body = req.body || {};
     if (!body || typeof body !== "object") {
@@ -102,7 +101,7 @@ module.exports = async (req, res) => {
 
     for (const item of payload.items) {
       if (item.type === "social") {
-        if (REQUIRE_WRAP_LINK) {
+        if (isWrapLink(req)) {
           const host = new URL(item.link).host;
           const blog = await getOneBlog({ blogDns: host });
           if (!blog) continue;
