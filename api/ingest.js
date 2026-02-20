@@ -101,7 +101,7 @@ module.exports = async (req, res) => {
 
     for (const item of payload.items) {
       if (item.type === "social") {
-        if (isWrapLink(req)) {
+        if (isWrapLink()) {
           const host = new URL(item.link).host;
           const blog = await getOneBlog({ blogDns: host });
           if (!blog) continue;
