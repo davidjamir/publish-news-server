@@ -49,7 +49,7 @@ async function getQuotasToday(type, keys = []) {
   return map;
 }
 
-async function increaseQuota({ type, user, domain, limit = 100 }) {
+async function increaseQuota({ type, user, domain, limit = 50 }) {
   const col = await getCollection();
   const date = getDateKey();
   const now = new Date();
