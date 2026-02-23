@@ -251,7 +251,7 @@ async function sendMail(item = {}) {
   return {
     ok: true,
     to,
-    blogDns: picked.blogDns || null,
+    blogDns: picked.blogDns || "",
     messageId: info.messageId,
     accepted: info.accepted,
     rejected: info.rejected,

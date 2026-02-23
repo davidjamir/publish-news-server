@@ -49,7 +49,7 @@ async function getQuotasToday(type, keys = []) {
   return map;
 }
 
-async function increaseQuota({ type, user, domain, limit = 50 }) {
+async function increaseQuota({ type, user, domain, limit = 40 }) {
   const col = await getCollection();
   const date = getDateKey();
   const now = new Date();
@@ -100,7 +100,7 @@ async function increaseQuota({ type, user, domain, limit = 50 }) {
             type: "origin",
             key: `${user}:${origin}`,
             domain: origin,
-            limit: 500,
+            limit: 120,
           }),
         },
         { upsert: true },

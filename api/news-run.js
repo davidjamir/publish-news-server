@@ -38,8 +38,8 @@ module.exports = async (req, res) => {
         if (!newsItem) throw new Error("newsItem missing/expired");
 
         // Cần set toDns, nếu muốn gửi tới dns cụ thể, mode auto thì truyền toDns rỗng
-        await sendMail(newsItem);
-        await newsStore.update(id, { status: "Sent" });
+        const r = await sendMail(newsItem);
+        await newsStore.update(id, { status: "Sent", site: r.blogDns });
       } catch (e) {
         status = "failed";
         error = String(e?.message || e);
