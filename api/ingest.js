@@ -11,13 +11,12 @@ const {
   socialStore,
   linkStore,
 } = require("../src/store");
-
-const getType = (flags = [], defaultType = "news") => {
-  const t = getFlagValue(flags, "type", defaultType).toLowerCase();
-  if (t !== "news" && t !== "social")
-    throw new Error("type must be news|social");
-  return t;
-};
+const {
+  getType,
+  getModeSocial,
+  getPageName,
+  getScheduleFlag,
+} = require("../helper/getFlagValue");
 
 function cutPointerPrefixAnywhere(snippet) {
   let s = toStr(snippet);
@@ -74,8 +73,29 @@ module.exports = async (req, res) => {
       source: body.source ?? {},
       items,
     };
+    const type = getType(payload.flags);
+    const page = getPageName(payload.flags);
+    const modeSocial = getModeSocial(payload.flags);
+    const scheduleOn = getScheduleFlag(payload.flags);
+
+    const pages = [];
+    if (modeSocial == "auto" && type === "social") {
+      pages.push({
+        index: pages.length,
+        requestChatId: payload.chatId,
+        page,
+        tags: payload.tags,
+        status: "pending",
+        postId: "",
+        error: "",
+        modeSocial,
+        schedule: scheduleOn,
+        createdAt: new Date().toISOString(),
+      });
+    }
+
     payload.batchId = buildHashBatchId(payload);
-    payload.type = getType(payload.flags);
+    payload.type = type;
     payload.items = await Promise.all(
       payload.items.map(async (it) => {
         const itemId = buildHashItemId(payload.batchId, it);
@@ -87,7 +107,7 @@ module.exports = async (req, res) => {
           type: payload.type,
           targets: payload.targets,
           topics: payload.topics,
-          pages: [],
+          pages,
           itemId,
           batchId: payload.batchId,
         };
@@ -109,6 +129,7 @@ module.exports = async (req, res) => {
           item.wrapLink =
             `https://${blog.wrapDomain}` + url.pathname + url.search;
         }
+
         await socialStore.push(item);
         await linkStore.push({ itemId: item.itemId, link: toStr(item.link) });
       } else await newsStore.push(item);

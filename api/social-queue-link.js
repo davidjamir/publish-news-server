@@ -2,7 +2,12 @@ const { isAuthorized } = require("../helper/isAuthorized");
 const { socialQueue } = require("../src/queue");
 const { socialStore, linkStore } = require("../src/store");
 const { isoTimeZone } = require("../helper/timeZone");
-const { getFlagValue } = require("../helper/getFlagValue");
+const {
+  getType,
+  getModeSocial,
+  getPageName,
+  getScheduleFlag,
+} = require("../helper/getFlagValue");
 const {
   computeScheduleAt,
   commitScheduleForPage,
@@ -22,31 +27,6 @@ const extractLink = (text = "") => {
     .trim()
     .replace(/[)\],.?!;]+$/g, "");
 };
-
-const getType = (flags = [], defaultType = "news") => {
-  const t = getFlagValue(flags, "type", defaultType).toLowerCase();
-  if (t !== "news" && t !== "social")
-    throw new Error("type must be news|social");
-  return t;
-};
-
-const getModeSocial = (flags = [], defaultMode = "manual") => {
-  const v = getFlagValue(flags, "modeSocial", defaultMode).toLowerCase();
-  if (v !== "auto" && v !== "manual")
-    throw new Error("modeSocial must be auto|manual");
-  return v;
-};
-
-const getPageName = (flags = [], defaultPage = "") => {
-  return getFlagValue(flags, "page", defaultPage);
-};
-
-function getScheduleFlag(flags = [], defaultSchedule = "off") {
-  const v = getFlagValue(flags, "schedule", defaultSchedule).toLowerCase();
-  if (["on", "1", "true", "yes", "y"].includes(v)) return true;
-  if (["off", "0", "false", "no", "n"].includes(v)) return false;
-  return false;
-}
 
 module.exports = async (req, res) => {
   res.setHeader("Cache-Control", "no-store, max-age=0");
@@ -110,6 +90,8 @@ module.exports = async (req, res) => {
         status: "pending",
         postId: "",
         error: "",
+        modeSocial,
+        schedule: scheduleOn,
         createdAt: new Date().toISOString(),
       },
     ];
@@ -138,7 +120,10 @@ module.exports = async (req, res) => {
     return res.status(500).json({
       status: false,
       title,
-      text: toStr(err?.message || "Internal Server Error"),
+      text: toStr(
+        err?.message ||
+          "Internal Server Error or Not crawled items, waiting somne minutes!",
+      ),
     });
   }
 };

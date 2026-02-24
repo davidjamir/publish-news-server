@@ -1,9 +1,16 @@
-const { crawlQueue, newsQueue } = require("./queue");
+const { crawlQueue, newsQueue, socialQueue } = require("./queue");
 const { newsStore, socialStore } = require("./store");
+const { getFacebookAPIByName } = require("../src/facebook");
+const { isoTimeZone } = require("../helper/timeZone");
+const { sendNotify } = require("../src/notify");
+const { toStr } = require("../helper/toString");
+const {
+  computeScheduleAt,
+  commitScheduleForPage,
+} = require("../src/scheduler");
 
 const MIN_DELAY_MS = 5 * 60 * 1000; // 5 phút
 const MAX_RETRY = 10;
-const toStr = (x) => String(x ?? "").trim();
 
 function parseQueueId(raw) {
   const [itemId, type, countRetry = "0"] = String(raw).split("|");
@@ -183,6 +190,74 @@ async function runCrawl({ limit = 10, dryRun = false } = {}) {
     if (type === "news" && !dryRun) {
       await newsQueue.push(itemId);
       enqueued++;
+    }
+
+    const pages = (Array.isArray(item.pages) ? item.pages : []).filter(
+      (item) => item.page && item.modeSocial === "auto",
+    );
+    if (type === "social" && pages.length > 0) {
+      const response = [];
+
+      for (const i of pages) {
+        try {
+          const itemPage = await getFacebookAPIByName(i.page);
+          if (!itemPage) {
+            response.push({
+              requestChatId: i.requestChatId,
+              pageName: i.page,
+              title: item.title,
+              ok: false,
+              error: "Page not found",
+            });
+            continue;
+          }
+
+          const scheduleAt = i.schedule
+            ? await computeScheduleAt({ pageId: itemPage.pageId })
+            : Date.now();
+
+          const member = `${item.itemId}|${i.page}`;
+          if (pageItem.schedule) {
+            await socialQueue.scheduleOne(member, scheduleAt, {
+              dedupe: false,
+            });
+          } else {
+            await socialQueue.push(member, { dedupe: false });
+          }
+
+          await commitScheduleForPage(itemPage.pageId, scheduleAt);
+          response.push({
+            requestChatId: i.requestChatId,
+            pageName: i.page,
+            title: item.title,
+            ok: true,
+          });
+        } catch (err) {
+          response.push({
+            requestChatId: i.requestChatId,
+            pageName: i.page,
+            title: item.title,
+            ok: false,
+            error: err?.message || "Unknown error",
+          });
+        }
+      }
+
+      for (const r of response) {
+        try {
+          await sendNotify({
+            chatId: r.requestChatId,
+            page: r.pageName,
+            title: r.title,
+            status: r.ok,
+            text: r.error ? String(r.error) : "",
+            timeBangkok: isoTimeZone(new Date()),
+            timeNewyork: isoTimeZone(new Date(), "America/New_York"),
+          });
+        } catch (notifyErr) {
+          console.error("Notify failed:", notifyErr);
+        }
+      }
     }
 
     processed++;

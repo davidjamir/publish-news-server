@@ -43,20 +43,20 @@ module.exports = async (req, res) => {
       const socialItem = await socialStore.get(itemId);
       let status = "ok";
       let error = null;
-      let res = {};
+      let response = {};
 
       try {
         if (!socialItem) throw new Error("socialItem missing/expired");
         if (!itemId || !page)
           throw new Error("invalid queue member (expected itemId|page)");
 
-        res = await sendFaceBookPost(socialItem, { page });
+        response = await sendFaceBookPost(socialItem, { page });
       } catch (e) {
         status = "failed";
         error = String(e?.message || e);
       }
 
-      for (const item of res.results) {
+      for (const item of response.results) {
         await sendNotify({
           chatId: item.requestChatId,
           page: item.pageName,
@@ -71,7 +71,7 @@ module.exports = async (req, res) => {
       results.push({
         socialId: member,
         status,
-        ...res,
+        ...response,
         ...(error ? { error } : {}),
       });
     }
