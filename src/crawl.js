@@ -203,6 +203,7 @@ async function runCrawl({ limit = 10, dryRun = false } = {}) {
           const itemPage = await getFacebookAPIByName(i.page);
           if (!itemPage) {
             response.push({
+              schedule: i.schedule,
               requestChatId: i.requestChatId,
               pageName: i.page,
               title: item.title,
@@ -227,6 +228,7 @@ async function runCrawl({ limit = 10, dryRun = false } = {}) {
 
           await commitScheduleForPage(itemPage.pageId, scheduleAt);
           response.push({
+            schedule: i.schedule,
             requestChatId: i.requestChatId,
             pageName: i.page,
             title: item.title,
@@ -235,6 +237,7 @@ async function runCrawl({ limit = 10, dryRun = false } = {}) {
           });
         } catch (err) {
           response.push({
+            schedule: i.schedule,
             requestChatId: i.requestChatId,
             pageName: i.page,
             title: item.title,
@@ -245,6 +248,7 @@ async function runCrawl({ limit = 10, dryRun = false } = {}) {
       }
 
       for (const r of response) {
+        if (!r.schedule) continue;
         try {
           await sendNotify({
             type: "schedule-social",
