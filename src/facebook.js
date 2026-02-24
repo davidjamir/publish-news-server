@@ -6,6 +6,53 @@ const { getOnePage } = require("../database/pages");
 const FB_GRAPH_BASE = `https://graph.facebook.com/v24.0`;
 const MAX_NUMBER_TAGS = 5;
 
+const commentTemplates = [
+  "🔎 Full story here:",
+  "📖 Read the complete version here:",
+  "📰 Full coverage at:",
+  "📊 In-depth breakdown here:",
+  "🧠 More insights in the full article:",
+  "📌 Additional details here:",
+  "🔥 Full explanation here:",
+  "👀 If you're curious, full story here:",
+  "💡 Everything explained in detail here:",
+  "📚 Background and full context:",
+  "🚨 Full update here:",
+  "✨ Complete write-up here:",
+  "👉 Full article here:",
+  "🔍 More context available at:",
+  "📎 Full details here:",
+  "📝 Full write-up available here:",
+  "📢 Complete coverage here:",
+  "🧾 Full report here:",
+  "📈 Detailed article here:",
+  "📉 Full breakdown here:",
+  "🗂️ All the details here:",
+  "📍 More information here:",
+  "🖊️ Full explanation in the article:",
+  "📘 Full version here:",
+  "📓 Complete overview here:",
+  "👓 Take a closer look here:",
+  "🧩 Full context explained here:",
+  "🛠️ Step-by-step breakdown here:",
+  "📦 Everything you need to know here:",
+  "📣 Full update and details here:",
+  "🧭 Explore the full story here:",
+  "📜 Full background here:",
+  "🔦 More insight available here:",
+  "📄 Read the full piece here:",
+  "📥 Full article linked here:",
+  "👀 Dive deeper here:",
+  "🔗 Access the full story here:",
+  "🧠 Full insight here:",
+  "📚 Get the complete details here:",
+  "📰 Read the full coverage here:",
+  "📌 Full explanation linked here:",
+  "💬 Full discussion here:",
+  "🧾 Complete details here:",
+  "📍 Full context available here:",
+];
+
 function clampText(s, max = 800) {
   s = toStr(s).replace(/\s+/g, " ").trim();
   if (!s) return "";
@@ -233,7 +280,7 @@ async function sendFaceBookPost(item, opts = {}) {
         commentRes = await sendFaceBookComment({
           postId,
           pageToken: payload.pageToken,
-          message: `Read more: ${link}`,
+          message: `${commentTemplates[Math.floor(Math.random() * commentTemplates.length)]} ${link}`,
         });
       }
 
