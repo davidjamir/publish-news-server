@@ -217,7 +217,7 @@ async function runCrawl({ limit = 10, dryRun = false } = {}) {
             : Date.now();
 
           const member = `${item.itemId}|${i.page}`;
-          if (pageItem.schedule) {
+          if (i.schedule) {
             await socialQueue.scheduleOne(member, scheduleAt, {
               dedupe: false,
             });
@@ -231,6 +231,7 @@ async function runCrawl({ limit = 10, dryRun = false } = {}) {
             pageName: i.page,
             title: item.title,
             ok: true,
+            scheduleAt,
           });
         } catch (err) {
           response.push({
@@ -246,13 +247,18 @@ async function runCrawl({ limit = 10, dryRun = false } = {}) {
       for (const r of response) {
         try {
           await sendNotify({
+            type: "schedule-social",
             chatId: r.requestChatId,
             page: r.pageName,
             title: r.title,
             status: r.ok,
             text: r.error ? String(r.error) : "",
-            timeBangkok: isoTimeZone(new Date()),
-            timeNewyork: isoTimeZone(new Date(), "America/New_York"),
+            timeBangkok: r.scheduleAt
+              ? isoTimeZone(new Date(r.scheduleAt))
+              : isoTimeZone(new Date()),
+            timeNewyork: r.scheduleAt
+              ? isoTimeZone(new Date(r.scheduleAt), "America/New_York")
+              : isoTimeZone(new Date(), "America/New_York"),
           });
         } catch (notifyErr) {
           console.error("Notify failed:", notifyErr);

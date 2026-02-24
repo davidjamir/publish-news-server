@@ -58,6 +58,7 @@ module.exports = async (req, res) => {
 
       for (const item of response.results) {
         await sendNotify({
+          type: "post-social",
           chatId: item.requestChatId,
           page: item.pageName,
           title: socialItem.title,
