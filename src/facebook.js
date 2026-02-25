@@ -324,9 +324,7 @@ function generateCTA(link) {
 
     const formats = [
       `${cta} ${buildTrackingLink(link)}`,
-      `${cta}\n${buildTrackingLink(link)}`,
       `${cta} 👇 ${buildTrackingLink(link)}`,
-      `${cta}\n👇 ${buildTrackingLink(link)}`,
       `${cta} — ${buildTrackingLink(link)}`,
     ];
 
@@ -397,7 +395,14 @@ function buildFaceBookPost(item = {}, tags = []) {
   }
 
   if (hashtags.length) {
-    parts.push("\n");
+    const spacingTags = Math.random();
+    if (spacingTags < 0.3) {
+      parts.push("\n");
+    } else if (spacingTags < 0.6) {
+      parts.push("\n\n");
+    } else {
+      parts.push("\n\n\n");
+    }
     parts.push(hashtags.slice(0, 5).join(" "));
   }
 
