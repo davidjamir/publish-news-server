@@ -48,7 +48,7 @@ async function createTTLIndex(col) {
   if (!ttlIndexExists) {
     await col.createIndex(
       { createdAt: 1 }, // Sắp xếp tăng dần theo createdAt
-      { expireAfterSeconds: 60 * 60 * 24 * 10 }, // Tài liệu sẽ hết hạn sau 10 ngày
+      { expireAfterSeconds: 60 * 60 * 24 * 5 }, // Tài liệu sẽ hết hạn sau 10 ngày
     );
     console.log(`TTL Index created for collection: ${col.collectionName}`);
   }
