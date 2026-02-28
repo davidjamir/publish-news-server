@@ -132,7 +132,9 @@ module.exports = async (req, res) => {
 
         await socialStore.push(item);
         await linkStore.push({ itemId: item.itemId, link: toStr(item.link) });
-      } else await newsStore.push(item);
+      } else if (item.type === "news") {
+        await newsStore.push(item);
+      } else continue;
       await crawlQueue.push(`${item.itemId}|${item.type}|0`, {
         dedupe: false,
         status: "crawl",
