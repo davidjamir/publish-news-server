@@ -1,7 +1,6 @@
 // api/news-ingest.js
 const { isAuthorized, isWrapLink } = require("../helper/isAuthorized");
 const { buildHashBatchId, buildHashItemId } = require("../src/crypto");
-const { getFlagValue } = require("../helper/getFlagValue");
 const { toStr } = require("../helper/toString");
 const { getOneBlog } = require("../database/blogs");
 const { crawlQueue } = require("../src/queue");

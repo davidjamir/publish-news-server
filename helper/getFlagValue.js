@@ -26,7 +26,13 @@ const getModeSocial = (flags = [], defaultMode = "manual") => {
 };
 
 const getPageName = (flags = [], defaultPage = "") => {
-  return getFlagValue(flags, "page", defaultPage);
+  const pages = flags
+    .map((f) => f.startsWith("page:") && f.slice(5))
+    .filter(Boolean);
+
+  return pages.length
+    ? pages[Math.floor(Math.random() * pages.length)]
+    : defaultPage;
 };
 
 function getScheduleFlag(flags = [], defaultSchedule = "off") {
