@@ -378,11 +378,11 @@ function buildFaceBookPost(item = {}, tags = []) {
     parts.push(soft);
   } else {
     const ctaText = generateCTA(link);
-    if (positionType < 0.2) {
+    if (positionType < 0.3) {
       // 🔥 CTA ở đầu
       parts.push(ctaText);
       parts.push(mainText);
-    } else if (positionType < 0.5) {
+    } else if (positionType < 0.5 && ctaText.includes("https://")) {
       // 🔥 CTA ở giữa
       const [firstHalf, secondHalf] = splitText(mainText);
       parts.push(firstHalf);
