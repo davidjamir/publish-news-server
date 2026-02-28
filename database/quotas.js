@@ -78,6 +78,8 @@ async function increaseQuota({ type, user, domain, limit = 40 }) {
         $setOnInsert: buildDoc({
           type,
           key: `${user}:${domain}`,
+          user,
+          origin: extractOriginFromSubdomain(domain),
           domain,
           limit,
         }),
@@ -99,6 +101,8 @@ async function increaseQuota({ type, user, domain, limit = 40 }) {
           $setOnInsert: buildDoc({
             type: "origin",
             key: `${user}:${origin}`,
+            user,
+            origin,
             domain: origin,
             limit: 120,
           }),
