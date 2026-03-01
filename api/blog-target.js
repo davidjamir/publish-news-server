@@ -31,7 +31,6 @@ module.exports = async (req, res) => {
     if (req.method === "POST") {
       const body = req.body || {};
       const targets = body.targets;
-      console.log(targets.slice(-20));
       console.log("Length: ", targets.length);
 
       if (!Array.isArray(targets)) {
@@ -62,7 +61,7 @@ module.exports = async (req, res) => {
           enabled: t.enabled,
         });
       }
-      console.log("Results: ", results);
+      console.log("Results: ", results.slice(-50));
       await insertManyBlogs(results);
       await insertManyWraps(results);
 
