@@ -382,7 +382,7 @@ function buildFaceBookPost(item = {}, tags = []) {
       // 🔥 CTA ở đầu
       parts.push(ctaText);
       parts.push(mainText);
-    } else if (positionType < 0.5 && ctaText.includes("https://")) {
+    } else if (positionType < 0.5 && ctaText?.includes("https://")) {
       // 🔥 CTA ở giữa
       const [firstHalf, secondHalf] = splitText(mainText);
       parts.push(firstHalf);

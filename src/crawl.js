@@ -151,7 +151,7 @@ async function runCrawl({ limit = 10, dryRun = false } = {}) {
     ).getTime();
 
     if (type === "news" && Date.now() - createdAt < MIN_DELAY_MS) {
-      console.log("Error by not enough Time");
+      console.log("Need min-time for started crawl!");
       retryList.push(`${itemId}|${type}|${countRetry + 1}`);
       continue;
     }
