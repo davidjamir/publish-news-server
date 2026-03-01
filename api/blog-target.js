@@ -62,7 +62,7 @@ module.exports = async (req, res) => {
           enabled: t.enabled,
         });
       }
-
+      console.log("Results: ", results);
       await insertManyBlogs(results);
       await insertManyWraps(results);
 
