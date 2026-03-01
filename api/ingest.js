@@ -119,6 +119,7 @@ module.exports = async (req, res) => {
     await batchStore.push({ ...payload, status: "stored" });
 
     for (const item of payload.items) {
+      if (item.type !== "social" && item.type !== "news") continue;
       if (item.type === "social") {
         if (isWrapLink()) {
           const url = new URL(item.link);
@@ -131,9 +132,9 @@ module.exports = async (req, res) => {
 
         await socialStore.push(item);
         await linkStore.push({ itemId: item.itemId, link: toStr(item.link) });
-      } else if (item.type === "news") {
+      } else {
         await newsStore.push(item);
-      } else continue;
+      }
       await crawlQueue.push(`${item.itemId}|${item.type}|0`, {
         dedupe: false,
         status: "crawl",
