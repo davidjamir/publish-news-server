@@ -31,6 +31,8 @@ module.exports = async (req, res) => {
     if (req.method === "POST") {
       const body = req.body || {};
       const targets = body.targets;
+      console.log(targets.slice(-20));
+      console.log("Length: ", targets.length);
 
       if (!Array.isArray(targets)) {
         return res
