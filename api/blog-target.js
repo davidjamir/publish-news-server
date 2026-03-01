@@ -45,7 +45,10 @@ module.exports = async (req, res) => {
         const blogDns = normDns(t?.blogDns);
         const blogEmail = toStr(t?.blogEmail);
         if (!blogDns) continue;
-        if (!blogEmail || !isValidEmail(blogEmail)) continue;
+        if (!blogEmail || !isValidEmail(blogEmail)) {
+          console.log("Email is not valid. Please check it!");
+          continue;
+        }
         if (seen.has(blogDns)) continue;
 
         seen.add(blogDns);
