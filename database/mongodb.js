@@ -11,9 +11,9 @@ const options = {
 
 const clients = {
   default: new MongoClient(process.env.MONGODB_URI, options),
-  batches: new MongoClient(process.env.MONGODB_URI_1, options),
-  social: new MongoClient(process.env.MONGODB_URI_2, options),
-  news: new MongoClient(process.env.MONGODB_URI_3, options),
+  batches: new MongoClient(process.env.MONGODB_URI1, options),
+  social: new MongoClient(process.env.MONGODB_URI2, options),
+  news: new MongoClient(process.env.MONGODB_URI3, options),
 };
 
 // Attach MongoDB client vào database pool của Vercel
