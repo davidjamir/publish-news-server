@@ -1,10 +1,4 @@
-const { getDb } = require("./mongodb"); // MongoDB client
-
-// Hàm lấy collection theo tên collection truyền vào
-async function getCollection(collectionName) {
-  const db = await getDb();
-  return db.collection(collectionName);
-}
+const { getCollection } = require("./mongodb"); // MongoDB client
 
 // Thêm nhiều tài liệu vào collection
 async function insertManyItems(collectionName, payload) {

@@ -7,54 +7,87 @@ const options = {
   maxIdleTimeMS: 5000, // Cấu hình thời gian tối đa kết nối idle
 };
 
-// Kết nối MongoDB với URI từ biến môi trường
-const client = new MongoClient(process.env.MONGODB_URI, options);
+const clients = {
+  default: new MongoClient(process.env.MONGODB_URI, options),
+  batches: new MongoClient(process.env.MONGODB_URI_1, options),
+  social: new MongoClient(process.env.MONGODB_URI_2, options),
+  news: new MongoClient(process.env.MONGODB_URI_3, options),
+};
 
 // Attach MongoDB client vào database pool của Vercel
-attachDatabasePool(client);
+Object.values(clients).forEach((client) => {
+  attachDatabasePool(client);
+});
 
-let _db;
+const dbCache = {};
+const indexInitialized = {};
 
-async function getDb() {
-  if (_db) return _db;
+async function getDb(type = "default") {
+  if (dbCache[type]) return dbCache[type];
 
-  // ⚠️ QUAN TRỌNG: attachDatabasePool KHÔNG tự connect
+  const client = clients[type] || clients.default;
+
   if (!client.topology?.isConnected()) {
     await client.connect();
   }
 
-  _db = client.db(process.env.MONGODB_DB || "server-news");
+  const db = client.db(process.env.MONGODB_DB || "databases");
 
-  // Tạo TTL Index nếu chưa có
-  await createTTLIndex(_db.collection("news"));
-  await createTTLIndex(_db.collection("social"));
-  await createTTLIndex(_db.collection("batches"));
-  await createTTLIndex(_db.collection("links"));
-  await createTTLIndex(_db.collection("quotas"));
+  dbCache[type] = db;
 
-  // Tạo Index cho wrap links
-  await _db
-    .collection("wraps")
-    .createIndex({ wrap_host: 1, prefix: 1 }, { unique: true });
-  return _db;
+  // Tạo index lần đầu cho DB này
+  if (!indexInitialized[type]) {
+    await initIndexes(db, type);
+    indexInitialized[type] = true;
+  }
+
+  return db;
 }
 
-// Tạo TTL Index cho trường createdAt trong collection
-async function createTTLIndex(col) {
-  // Kiểm tra nếu TTL Index đã tồn tại
-  const indexes = await col.indexes();
-  const ttlIndexExists = indexes.some((index) => index.key.createdAt);
+async function initIndexes(db, type) {
+  // TTL cho các collection cần expire
+  const ttlCollections = ["news", "social", "batches", "links", "quotas"];
 
-  if (!ttlIndexExists) {
-    await col.createIndex(
-      { createdAt: 1 }, // Sắp xếp tăng dần theo createdAt
-      { expireAfterSeconds: 60 * 60 * 24 * 5 }, // Tài liệu sẽ hết hạn sau 10 ngày
-    );
-    console.log(`TTL Index created for collection: ${col.collectionName}`);
+  for (const name of ttlCollections) {
+    try {
+      await db.collection(name).createIndex(
+        { createdAt: 1 },
+        { expireAfterSeconds: 60 * 60 * 24 * 10 }, // Hiện tại là 10 ngà
+      );
+    } catch (err) {
+      console.error(`Index error for ${name}:`, err.message);
+    }
+  }
+
+  // Index riêng cho wraps (chỉ default DB)
+  if (type === "default") {
+    await db
+      .collection("wraps")
+      .createIndex({ wrap_host: 1, prefix: 1 }, { unique: true });
   }
 }
 
-// Export MongoClient cho các route hoặc file khác có thể sử dụng lại
+async function getCollection(name) {
+  if (name === "batches") {
+    const db = await getDb("batches");
+    return db.collection("batches");
+  }
+
+  if (name === "social") {
+    const db = await getDb("social");
+    return db.collection("social");
+  }
+
+  if (name === "news") {
+    const db = await getDb("news");
+    return db.collection("news");
+  }
+
+  const db = await getDb("default");
+  return db.collection(name);
+}
+
 module.exports = {
   getDb,
+  getCollection,
 };
