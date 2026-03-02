@@ -2,6 +2,8 @@
 const { MongoClient } = require("mongodb");
 const { attachDatabasePool } = require("@vercel/functions");
 
+const Day_TTL = 10; //Day
+
 const options = {
   appName: "devrel.vercel.integration", // Tên ứng dụng của bạn
   maxIdleTimeMS: 5000, // Cấu hình thời gian tối đa kết nối idle
@@ -27,9 +29,7 @@ async function getDb(type = "default") {
 
   const client = clients[type] || clients.default;
 
-  if (!client.topology?.isConnected()) {
-    await client.connect();
-  }
+  await client.connect();
 
   const db = client.db(process.env.MONGODB_DB || "databases");
 
@@ -45,25 +45,55 @@ async function getDb(type = "default") {
 }
 
 async function initIndexes(db, type) {
-  // TTL cho các collection cần expire
-  const ttlCollections = ["news", "social", "batches", "links", "quotas"];
-
-  for (const name of ttlCollections) {
-    try {
-      await db.collection(name).createIndex(
-        { createdAt: 1 },
-        { expireAfterSeconds: 60 * 60 * 24 * 10 }, // Hiện tại là 10 ngà
-      );
-    } catch (err) {
-      console.error(`Index error for ${name}:`, err.message);
+  try {
+    if (type === "batches") {
+      await db
+        .collection("batches")
+        .createIndex(
+          { createdAt: 1 },
+          { expireAfterSeconds: 60 * 60 * 24 * Day_TTL },
+        );
     }
-  }
 
-  // Index riêng cho wraps (chỉ default DB)
-  if (type === "default") {
-    await db
-      .collection("wraps")
-      .createIndex({ wrap_host: 1, prefix: 1 }, { unique: true });
+    if (type === "social") {
+      await db
+        .collection("social")
+        .createIndex(
+          { createdAt: 1 },
+          { expireAfterSeconds: 60 * 60 * 24 * Day_TTL },
+        );
+    }
+
+    if (type === "news") {
+      await db
+        .collection("news")
+        .createIndex(
+          { createdAt: 1 },
+          { expireAfterSeconds: 60 * 60 * 24 * Day_TTL },
+        );
+    }
+
+    if (type === "default") {
+      await db
+        .collection("links")
+        .createIndex(
+          { createdAt: 1 },
+          { expireAfterSeconds: 60 * 60 * 24 * Day_TTL },
+        );
+
+      await db
+        .collection("quotas")
+        .createIndex(
+          { createdAt: 1 },
+          { expireAfterSeconds: 60 * 60 * 24 * Day_TTL },
+        );
+
+      await db
+        .collection("wraps")
+        .createIndex({ wrap_host: 1, prefix: 1 }, { unique: true });
+    }
+  } catch (err) {
+    console.error("Index error:", err.message);
   }
 }
 
