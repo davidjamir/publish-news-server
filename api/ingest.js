@@ -73,6 +73,10 @@ module.exports = async (req, res) => {
       items,
     };
     const type = getType(payload.flags);
+    if (type !== "social" && type !== "news") {
+      throw new Error("Invalid type is 'default'. Must be 'social' or 'news'");
+    }
+
     const page = getPageName(payload.flags);
     const modeSocial = getModeSocial(payload.flags);
     const scheduleOn = getScheduleFlag(payload.flags);
@@ -119,7 +123,6 @@ module.exports = async (req, res) => {
     await batchStore.push({ ...payload, status: "stored" });
 
     for (const item of payload.items) {
-      if (item.type !== "social" && item.type !== "news") continue;
       if (item.type === "social") {
         if (isWrapLink()) {
           const url = new URL(item.link);
@@ -164,7 +167,7 @@ module.exports = async (req, res) => {
       itemsCount: items.length,
     });
   } catch (err) {
-    console.error("[api/ingest] error:", err);
+    console.log("[api/ingest] error: ", err);
     return res
       .status(500)
       .json({ ok: false, error: err?.message || "Internal Server Error" });
