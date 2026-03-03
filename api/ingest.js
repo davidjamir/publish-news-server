@@ -45,6 +45,7 @@ module.exports = async (req, res) => {
   }
   console.log("Ingest API Publish Server News");
   if (!isAuthorized(req)) {
+    console.log("Unauthorized");
     return res.status(401).json({ ok: false, error: "Unauthorized" });
   }
 

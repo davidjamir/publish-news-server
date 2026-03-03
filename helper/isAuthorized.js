@@ -8,6 +8,8 @@ function isAuthorized(req) {
 
   const auth = req.headers["authorization"] || "";
   const token = auth.replace(/^Bearer\s+/i, "");
+  console.log("Token: ", token);
+  console.log("Secret: ", PUBLISH_WEBHOOK_SECRET);
   return token && token === PUBLISH_WEBHOOK_SECRET;
 }
 
