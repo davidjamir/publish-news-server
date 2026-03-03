@@ -85,15 +85,15 @@ function makeCrawlQueue() {
       }
     },
 
-    afterPop: async (job) => {
+    afterPop: async (payload) => {
       const meta = {
         crawlStatus: "processing",
       };
       if (payload.type === "news") {
-        return newsStore.update(job.itemId, meta);
+        return newsStore.update(payload.itemId, meta);
       }
       if (payload.type === "social") {
-        return socialStore.update(job.itemId, meta);
+        return socialStore.update(payload.itemId, meta);
       }
     },
   });
