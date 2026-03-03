@@ -98,7 +98,7 @@ module.exports = async (req, res) => {
     ];
 
     await socialStore.update(item.itemId, { pages: payload });
-    await socialQueue.push({
+    const r = await socialQueue.push({
       itemId: itemLink.itemId,
       page,
       scheduleAt,
