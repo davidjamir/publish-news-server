@@ -26,7 +26,7 @@ function makeBaseQueue(collectionName, hooks = {}) {
     if (typeof afterPush === "function") {
       await afterPush(result);
     }
-    return { ok: true, ...result };
+    return { ok: true, skipped: false, ...result };
   }
 
   async function pop(filter = {}) {
