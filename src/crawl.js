@@ -156,10 +156,10 @@ async function runCrawl({ limit = 10, dryRun = false } = {}) {
       item.createdAt || item.publishedAt || 0,
     ).getTime();
 
-    if (type === "news" && Date.now() - createdAt < MIN_DELAY_MS) {
+    if (doc.type === "news" && Date.now() - createdAt < MIN_DELAY_MS) {
       console.log("Need min-time for started crawl!");
       retryList.push({
-        itemId: doc.itemid,
+        itemId: doc.itemId,
         type: doc.type,
         failCount: doc.failCount + 1,
       });
@@ -176,7 +176,7 @@ async function runCrawl({ limit = 10, dryRun = false } = {}) {
     } catch {
       console.log("Error try crawl by fectch server");
       retryList.push({
-        itemId: doc.itemid,
+        itemId: doc.itemId,
         type: doc.type,
         failCount: doc.failCount + 1,
       });
@@ -199,7 +199,7 @@ async function runCrawl({ limit = 10, dryRun = false } = {}) {
     if (!hasValidHtml && type === "news") {
       console.log("Item not has valid html");
       retryList.push({
-        itemId: doc.itemid,
+        itemId: doc.itemId,
         type: doc.type,
         failCount: doc.failCount + 1,
       });
