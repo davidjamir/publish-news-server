@@ -49,7 +49,7 @@ module.exports = async (req, res) => {
         });
       }
 
-      results.push({ newsId: id, status, error });
+      results.push({ newsId: doc.itemId, status, error });
     }
     console.log({ ok: true, processed: results.length, results });
     return res.json({ ok: true, processed: results.length, results });

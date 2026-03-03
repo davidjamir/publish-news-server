@@ -247,6 +247,7 @@ async function runCrawl({ limit = 10, dryRun = false } = {}) {
             ok: true,
             scheduleAt,
           });
+          enqueued++;
         } catch (err) {
           response.push({
             schedule: i.schedule,
