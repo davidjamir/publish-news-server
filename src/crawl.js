@@ -170,7 +170,7 @@ async function runCrawl({ limit = 10, dryRun = false } = {}) {
     let result = {};
     try {
       result =
-        type === "news"
+        doc.type === "news"
           ? await fetchContentAuto(item.link)
           : await fetchFeatureImageAuto(item.link);
     } catch {
