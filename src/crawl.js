@@ -128,7 +128,16 @@ async function runCrawl({ limit = 10, dryRun = false } = {}) {
 
   const retryList = [];
   for (let i = 0; i < limit; i++) {
-    const doc = await crawlQueue.pop();
+    const filter = {
+      $or: [
+        { type: "social" },
+        {
+          type: "news",
+          createdAt: { $lte: new Date(Date.now() - MIN_DELAY_MS) },
+        },
+      ],
+    };
+    const doc = await crawlQueue.pop(filter);
     if (!doc) break;
 
     if (!doc.itemId || !doc.type) continue;
@@ -146,21 +155,6 @@ async function runCrawl({ limit = 10, dryRun = false } = {}) {
     if (!item) continue;
 
     items.push(item);
-    // 1️⃣ check thời gian publish
-    const createdAt = new Date(
-      item.createdAt || item.publishedAt || 0,
-    ).getTime();
-
-    if (doc.type === "news" && Date.now() - createdAt < MIN_DELAY_MS) {
-      console.log("Need min-time for started crawl!");
-      retryList.push({
-        itemId: doc.itemId,
-        type: doc.type,
-        failCount: doc.failCount + 1,
-        reason: "Need min-time for started crawl!",
-      });
-      continue;
-    }
 
     // 2️⃣ crawl
     let result = {};
@@ -293,7 +287,12 @@ async function runCrawl({ limit = 10, dryRun = false } = {}) {
     await crawlQueue.push(retry);
   }
 
-  console.log({ processed, retried: retryList.length, enqueued });
+  console.log({
+    processed,
+    retried: retryList.length,
+    enqueued,
+    items: items.length,
+  });
   return { processed, retried: retryList.length, enqueued, items };
 }
 
