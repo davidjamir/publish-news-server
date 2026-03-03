@@ -21,9 +21,7 @@ function makeBaseQueue(collectionName, hooks = {}) {
       await beforePush(payload);
     }
 
-    const result = insertQueueItem(collectionName, {
-      payload,
-    });
+    const result = insertQueueItem(collectionName, payload);
 
     if (typeof afterPush === "function") {
       await afterPush(result);
