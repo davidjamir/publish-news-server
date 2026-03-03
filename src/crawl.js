@@ -157,6 +157,7 @@ async function runCrawl({ limit = 10, dryRun = false } = {}) {
         itemId: doc.itemId,
         type: doc.type,
         failCount: doc.failCount + 1,
+        reason: "Need min-time for started crawl!",
       });
       continue;
     }
@@ -174,6 +175,7 @@ async function runCrawl({ limit = 10, dryRun = false } = {}) {
         itemId: doc.itemId,
         type: doc.type,
         failCount: doc.failCount + 1,
+        reason: "Error try crawl by fectch server",
       });
       continue;
     }
@@ -198,6 +200,7 @@ async function runCrawl({ limit = 10, dryRun = false } = {}) {
         itemId: doc.itemId,
         type: doc.type,
         failCount: doc.failCount + 1,
+        reason: "Item not has valid html",
       });
       continue;
     }
