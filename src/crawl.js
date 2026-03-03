@@ -133,15 +133,21 @@ async function runCrawl({ limit = 10, dryRun = false } = {}) {
 
   const retryList = [];
   for (let i = 0; i < limit; i++) {
-    const raw = await crawlQueue.pop();
-    if (!raw) break;
+    const doc = await crawlQueue.pop();
+    if (!doc) break;
 
-    const { itemId, type, countRetry } = parseQueueId(raw);
-    if (countRetry >= MAX_RETRY) continue;
-    if (!itemId || !type) continue;
+    if (!doc.itemId || !doc.type) continue;
+    const store = doc.type === "social" ? socialStore : newsStore;
 
-    const store = type === "social" ? socialStore : newsStore;
-    const item = await store.get(itemId);
+    if (doc.failCount >= MAX_RETRY) {
+      await store.update(doc.itemId, {
+        crawlStatus: "error",
+        failCrawl: doc.failCount,
+      });
+      continue;
+    }
+
+    const item = await store.get(doc.itemId);
     if (!item) continue;
 
     items.push(item);
@@ -152,7 +158,11 @@ async function runCrawl({ limit = 10, dryRun = false } = {}) {
 
     if (type === "news" && Date.now() - createdAt < MIN_DELAY_MS) {
       console.log("Need min-time for started crawl!");
-      retryList.push(`${itemId}|${type}|${countRetry + 1}`);
+      retryList.push({
+        itemId: doc.itemid,
+        type: doc.type,
+        failCount: doc.failCount + 1,
+      });
       continue;
     }
 
@@ -165,17 +175,22 @@ async function runCrawl({ limit = 10, dryRun = false } = {}) {
           : await fetchFeatureImageAuto(item.link);
     } catch {
       console.log("Error try crawl by fectch server");
-      retryList.push(`${itemId}|${type}|${countRetry + 1}`);
+      retryList.push({
+        itemId: doc.itemid,
+        type: doc.type,
+        failCount: doc.failCount + 1,
+      });
       continue;
     }
 
     // 3️⃣ validate
     if (!dryRun && result && Object.keys(result).length) {
-      await store.update(itemId, {
+      await store.update(doc.itemId, {
         crawlHtml: result.crawlHtml,
         featuredImage: result.featuredImage,
         crawlSnippet: result.crawlSnippet,
         crawledAt: new Date().toISOString(),
+        crawlStatus: "done",
       });
     }
     const html = type === "news" ? toStr(result.crawlHtml || item.html) : "";
@@ -183,12 +198,16 @@ async function runCrawl({ limit = 10, dryRun = false } = {}) {
 
     if (!hasValidHtml && type === "news") {
       console.log("Item not has valid html");
-      retryList.push(`${itemId}|${type}|${countRetry + 1}`);
+      retryList.push({
+        itemId: doc.itemid,
+        type: doc.type,
+        failCount: doc.failCount + 1,
+      });
       continue;
     }
 
     if (type === "news" && !dryRun) {
-      await newsQueue.push(itemId);
+      await newsQueue.push({ itemId: doc.itemId });
       enqueued++;
     }
 
@@ -217,14 +236,11 @@ async function runCrawl({ limit = 10, dryRun = false } = {}) {
             ? await computeScheduleAt({ pageId: itemPage.pageId })
             : Date.now();
 
-          const member = `${item.itemId}|${i.page}`;
-          if (i.schedule) {
-            await socialQueue.scheduleOne(member, scheduleAt, {
-              dedupe: false,
-            });
-          } else {
-            await socialQueue.push(member, { dedupe: false });
-          }
+          await socialQueue.push({
+            itemId: item.itemId,
+            page: i.page,
+            scheduleAt,
+          });
 
           await commitScheduleForPage(itemPage.pageId, scheduleAt);
           response.push({
@@ -274,7 +290,7 @@ async function runCrawl({ limit = 10, dryRun = false } = {}) {
   }
 
   for (const retry of retryList) {
-    await crawlQueue.push(retry, { dedupe: false });
+    await crawlQueue.push(retry);
   }
 
   console.log({ processed, retried: retryList.length, enqueued });

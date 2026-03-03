@@ -135,9 +135,10 @@ module.exports = async (req, res) => {
       } else {
         await newsStore.push(item);
       }
-      await crawlQueue.push(`${item.itemId}|${item.type}|0`, {
-        dedupe: false,
-        status: "crawl",
+      await crawlQueue.push({
+        itemId: item.itemId,
+        type: item.type,
+        failCount: 0,
       });
     }
 
@@ -161,7 +162,6 @@ module.exports = async (req, res) => {
       chatId: payload.chatId,
       source: payload.source,
       itemsCount: items.length,
-      preview,
     });
   } catch (err) {
     console.error("[api/ingest] error:", err);

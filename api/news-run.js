@@ -27,24 +27,24 @@ module.exports = async (req, res) => {
 
     const results = [];
     for (let i = 0; i < max; i++) {
-      const id = await newsQueue.pop();
-      if (!id) break;
+      const doc = await newsQueue.pop();
+      if (!doc) break;
 
       let status = "ok";
       let error = null;
 
       try {
-        const newsItem = await newsStore.get(id);
+        const newsItem = await newsStore.get(doc.itemId);
         if (!newsItem) throw new Error("newsItem missing/expired");
 
         // Cần set toDns, nếu muốn gửi tới dns cụ thể, mode auto thì truyền toDns rỗng
         const r = await sendMail(newsItem);
-        await newsStore.update(id, { status: "Sent", site: r.blogDns });
+        await newsStore.update(doc.itemId, { status: "sent", site: r.blogDns });
       } catch (e) {
         status = "failed";
         error = String(e?.message || e);
-        await newsStore.update(id, {
-          status: "Failed",
+        await newsStore.update(doc.itemId, {
+          status: "failed",
           reason: error,
         });
       }

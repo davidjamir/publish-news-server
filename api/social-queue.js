@@ -45,7 +45,6 @@ module.exports = async (req, res) => {
 
         if (force) {
           await socialQueue.del(socialId);
-          await socialQueue.deleteDedupe(socialId);
         }
         const item = await socialStore.get(socialId);
         if (!item) {
@@ -59,10 +58,19 @@ module.exports = async (req, res) => {
             .json({ ok: false, error: "Item is not socialItem" });
         }
 
-        // nếu vẫn dùng payload {id,batchId} thì dùng kiểu cũ
-        const r = await socialQueue.push(socialId, { dedupe: true });
+        const results = [];
 
-        return res.json({ ok: true, action, socialId, ...r });
+        const pages = (item.pages || []).filter((p) => p.status === "pending");
+        for (const p of pages) {
+          const r = await socialQueue.push({
+            itemId: socialId,
+            page: p.page,
+            scheduleAt: Date.now(),
+          });
+          results.push(r);
+        }
+
+        return res.json({ ok: true, action, socialId, ...results });
       }
 
       // enqueue from batch
@@ -82,7 +90,7 @@ module.exports = async (req, res) => {
             .json({ ok: false, error: "Item is not socialItem" });
         }
 
-        const r = await socialQueue.pushFromBatch(batch, { dedupe: true });
+        const r = await socialQueue.pushBatch(batch.index || []);
         return res.json({ ok: true, action, batchId, ...r });
       }
 

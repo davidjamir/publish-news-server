@@ -36,21 +36,20 @@ module.exports = async (req, res) => {
 
     const results = [];
     for (let i = 0; i < max; i++) {
-      const member = await socialQueue.pop();
-      if (!member) break;
+      const doc = await socialQueue.pop({ scheduleAt: { $lte: Date.now() } });
+      if (!doc) break;
 
-      const { itemId, page } = parseMember(member);
-      const socialItem = await socialStore.get(itemId);
+      const socialItem = await socialStore.get(doc.itemId);
       let status = "ok";
       let error = null;
       let response = {};
 
       try {
         if (!socialItem) throw new Error("socialItem missing/expired");
-        if (!itemId || !page)
+        if (!doc.itemId || !doc.page)
           throw new Error("invalid queue member (expected itemId|page)");
 
-        response = await sendFaceBookPost(socialItem, { page });
+        response = await sendFaceBookPost(socialItem, { page: doc.page });
       } catch (e) {
         status = "failed";
         error = String(e?.message || e);
@@ -70,7 +69,7 @@ module.exports = async (req, res) => {
       }
 
       results.push({
-        socialId: member,
+        socialId: doc.itemId,
         status,
         ...response,
         ...(error ? { error } : {}),

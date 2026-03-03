@@ -1,295 +1,189 @@
-const { redis } = require("./redis");
-const { safeParse } = require("../helper/safeParse");
 const { newsStore, socialStore } = require("../src/store");
-const { toStr } = require("../helper/toString");
 
-const DEDUPE_TTL_SECONDS = 10 * 24 * 60 * 60;
-const NEWS_PREFIX = "news";
-const NEWS_QUEUE = "news:queue";
-const NEWS_DEDUPE = "news:dedupe";
+const {
+  insertQueueItem,
+  popOldestQueueItem,
+  getQueueItems,
+  deleteQueueItem,
+  clearQueue,
+  countQueueItems,
+} = require("../database/queue");
 
-const SOCIAL_PREFIX = "social";
-const SOCIAL_QUEUE = "social:queue";
-const SOCIAL_DEDUPE = "social:dedupe";
-const SOCIAL_SCHEDULE = "social:schedule";
+const NEWS_COLLECTION = "news_queue";
+const SOCIAL_COLLECTION = "social_queue";
+const CRAWL_COLLECTION = "crawl_queue";
 
-const CRAWL_PREFIX = "crawl";
-const CRAWL_QUEUE = "crawl:queue";
-const CRAWL_DEDUPE = "crawl:dedupe";
+function makeBaseQueue(collectionName, hooks = {}) {
+  const { beforePush, afterPush, beforePop, afterPop } = hooks;
 
-function makeQueue({
-  prefix, // "news" | "social"
-  queueKey, // default: `${prefix}:queue`
-  scheduleKey, //`${prefix}:schedule` (ZSET)
-  dedupePrefix, // default: `${prefix}:dedupe`
-  modeEnv, // "NEWS_QUEUE_MODE" | "SOCIAL_QUEUE_MODE"
-  defaultMode = "auto", // "auto" | "manual"
-  dedupeTtlSeconds = 10 * 24 * 60 * 60,
-  maxQueueLen = 100000,
-  onqueued,
-  statusIdFromId,
-} = {}) {
-  const queue = toStr(queueKey);
-  const dedupe = toStr(dedupePrefix);
-  const modeenv = toStr(modeEnv);
-  const prefixName = toStr(prefix) || "queue";
-
-  if (!queue) throw new Error("queueKey is required");
-  if (!dedupe) throw new Error("dedupePrefix is required");
-  if (!modeenv) throw new Error("modeEnv is required");
-
-  const mode = toStr(process.env[modeenv] || defaultMode).toLowerCase();
-
-  function getStatusId(id) {
-    return typeof statusIdFromId === "function" ? statusIdFromId(id) : id;
-  }
-
-  function isAutoMode() {
-    return mode === "auto";
-  }
-
-  function buildDedupeKey(id) {
-    const s = toStr(id);
-    if (!s) throw new Error(`id is required`);
-    return `${dedupe}:${s}`;
-  }
-
-  async function push(
-    id,
-    { dedupe: usededupe = true, status = "queued" } = {},
-  ) {
-    const itemId = toStr(id);
-    if (!itemId) throw new Error(`itemId is required`);
-
-    if (usededupe) {
-      const ok = await redis.set(buildDedupeKey(itemId), "1", {
-        nx: true,
-        ex: dedupeTtlSeconds,
-      });
-      if (!ok) {
-        return {
-          ok: true,
-          skipped: true,
-          reason: "deduped",
-          itemId,
-        };
-      }
+  async function push(payload) {
+    if (typeof beforePush === "function") {
+      await beforePush(payload);
     }
 
-    await redis.lpush(queue, JSON.stringify(itemId));
-    await redis.ltrim(queue, 0, Math.max(maxQueueLen - 1, 0));
+    const result = insertQueueItem(collectionName, {
+      payload,
+    });
 
-    // update status sau khi enqueue thành công
-    if (typeof onqueued === "function") {
-      await onqueued(getStatusId(itemId), {
-        status,
-        queuedAt: new Date().toISOString(),
-      });
+    if (typeof afterPush === "function") {
+      await afterPush(result);
     }
-    return { ok: true, skipped: false, id: itemId };
+    return result;
   }
 
-  async function pushFromBatch(payload, { dedupe: usededupe = true } = {}) {
-    const batchId = toStr(payload?.batchId);
-    const index = Array.isArray(payload?.index) ? payload.index : [];
-
-    if (!batchId) throw new Error("payload.batchId is required");
-    if (!index.length) return { ok: true, queued: 0, skipped: 0, batchId };
-
-    let queued = 0;
-    let skipped = 0;
-
-    for (const it of index) {
-      const itemId = toStr(it);
-      if (!itemId) continue;
-
-      const r = await push(itemId, { dedupe: usededupe });
-      if (r.skipped) skipped++;
-      else queued++;
+  async function pop(filter = {}) {
+    if (typeof beforePop === "function") {
+      await beforePop();
     }
 
-    return { ok: true, queued, skipped, batchId };
-  }
+    const job = await popOldestQueueItem(collectionName, filter);
+    if (!job) return null;
 
-  async function maybeEnqueueFromBatch(payload, opts = {}) {
-    if (!isAutoMode()) {
-      return { ok: true, mode, enqueued: false };
+    if (typeof afterPop === "function") {
+      await afterPop(job);
     }
-    const r = await pushFromBatch(payload, opts);
-    return { ok: true, mode, enqueued: true, ...r };
+
+    return job;
   }
 
   async function view(limit = 10) {
-    const n = Math.min(Math.max(Number(limit || 10), 1), 50);
-    const raws = await redis.lrange(queue, 0, n - 1);
-    return (raws || []).map(safeParse).filter(Boolean);
-  }
-
-  async function pop() {
-    const raw = await redis.rpop(queue);
-    return safeParse(raw);
+    return getQueueItems(collectionName, limit);
   }
 
   async function del(id) {
-    const s = toStr(id);
-    if (!s) throw new Error("id is required");
-    const removed = await redis.lrem(queue, 0, JSON.stringify(s));
-    return { ok: true, id: s, removed: Number(removed || 0) };
+    return deleteQueueItem(collectionName, id);
   }
 
   async function size() {
-    return await redis.llen(queue);
+    return countQueueItems(collectionName);
   }
 
   async function clear() {
-    await redis.del(queue);
-    return { ok: true };
-  }
-
-  async function deleteDedupe(id) {
-    const s = toStr(id);
-    if (!s) throw new Error(`id is required`);
-    await redis.del(buildDedupeKey(s));
-    return { ok: true };
-  }
-
-  async function scheduleOne(
-    id,
-    scheduleAtMs,
-    { dedupe: usededupe = true } = {},
-  ) {
-    const member = toStr(id);
-    if (!member) throw new Error(`id is required`);
-    const at = Number(scheduleAtMs || 0);
-    if (!Number.isFinite(at) || at <= 0)
-      throw new Error("scheduleAtMs must be a positive number");
-    if (!scheduleKey) throw new Error("scheduleKey is not configured");
-
-    if (usededupe) {
-      const ok = await redis.set(buildDedupeKey(member), "1", {
-        nx: true,
-        ex: dedupeTtlSeconds,
-      });
-      if (!ok) {
-        return { ok: true, skipped: true, reason: "deduped", id: member };
-      }
-    }
-
-    // ZADD schedule
-    await redis.zadd(scheduleKey, {
-      score: at,
-      member,
-    });
-
-    if (typeof onqueued === "function") {
-      await onqueued(getStatusId(member), {
-        status: "scheduled",
-        scheduledAt: new Date().toISOString(),
-      });
-    }
-
-    return { ok: true, skipped: false, id: member, scheduleAt: at };
-  }
-
-  async function moveDueToQueue(limit = 50) {
-    const n = Math.min(Math.max(Number(limit || 50), 1), 200);
-    if (!scheduleKey) throw new Error("scheduleKey is not configured");
-
-    const now = Date.now();
-
-    // Upstash/Redis raw args style (phổ biến):
-    const members = await redis.zrange(scheduleKey, 0, now, {
-      byScore: true,
-      limit: {
-        offset: 0,
-        count: n,
-      },
-    });
-
-    let moved = 0;
-    for (const member of members || []) {
-      // remove trước để tránh double
-      const removed = await redis.zrem(scheduleKey, member);
-      if (!removed) continue;
-
-      await redis.lpush(queue, JSON.stringify(member));
-      await redis.ltrim(queue, 0, Math.max(maxQueueLen - 1, 0));
-      moved++;
-
-      if (typeof onqueued === "function") {
-        await onqueued(getStatusId(member), {
-          status: "queued",
-          queuedAt: new Date().toISOString(),
-        });
-      }
-    }
-
-    return { ok: true, moved };
+    return clearQueue(collectionName);
   }
 
   return {
-    prefix: prefixName,
-    mode,
-    queueKey: queue,
-    dedupePrefix: dedupe,
-    scheduleKey: toStr(scheduleKey),
-
-    isAutoMode,
     push,
-    pushFromBatch,
-    maybeEnqueueFromBatch,
-    view,
     pop,
+    view,
     del,
     size,
     clear,
-    deleteDedupe,
-    scheduleOne,
-    moveDueToQueue,
   };
 }
 
-const newsQueue = makeQueue({
-  prefix: NEWS_PREFIX,
-  queueKey: NEWS_QUEUE,
-  dedupePrefix: NEWS_DEDUPE,
-  modeEnv: "NEWS_QUEUE_MODE",
-  dedupeTtlSeconds: DEDUPE_TTL_SECONDS,
-  onqueued: (id, meta) => newsStore.update(id, meta),
-});
+function makeCrawlQueue() {
+  const base = makeBaseQueue(CRAWL_COLLECTION, {
+    beforePush: async (payload) => {
+      const meta = {
+        crawlStatus: "pending",
+        queuedAt: new Date().toISOString(),
+      };
+      if (payload.type === "news") {
+        return newsStore.update(payload.itemId, meta);
+      }
+      if (payload.type === "social") {
+        return socialStore.update(payload.itemId, meta);
+      }
+    },
 
-const socialQueue = makeQueue({
-  prefix: SOCIAL_PREFIX,
-  queueKey: SOCIAL_QUEUE,
-  scheduleKey: SOCIAL_SCHEDULE,
-  dedupePrefix: SOCIAL_DEDUPE,
-  modeEnv: "SOCIAL_QUEUE_MODE",
-  dedupeTtlSeconds: DEDUPE_TTL_SECONDS,
-  onqueued: (id, meta) => socialStore.update(id, meta),
-  statusIdFromId: (id) => toStr(id).split("|")[0],
-});
+    afterPop: async (job) => {
+      const meta = {
+        crawlStatus: "processing",
+      };
+      if (payload.type === "news") {
+        return newsStore.update(job.itemId, meta);
+      }
+      if (payload.type === "social") {
+        return socialStore.update(job.itemId, meta);
+      }
+    },
+  });
 
-const crawlQueue = makeQueue({
-  prefix: CRAWL_PREFIX,
-  queueKey: CRAWL_QUEUE,
-  dedupePrefix: CRAWL_DEDUPE,
-  modeEnv: "CRAWL_QUEUE_MODE",
-  dedupeTtlSeconds: DEDUPE_TTL_SECONDS,
-  onqueued: (rawId, meta) => {
-    const [id, type, countRetry = "0"] = rawId.split("|");
-    const retry = Number(countRetry) || 0;
-    const payload = {
-      ...meta,
-      retry,
-    };
+  return base;
+}
 
-    if (type === "news") {
-      return newsStore.update(id, payload);
+function makeNewsQueue() {
+  const base = makeBaseQueue(NEWS_COLLECTION, {
+    beforePush: async (payload) => {
+      await newsStore.update(payload.itemId, {
+        status: "queued",
+        queuedAt: new Date(),
+      });
+    },
+
+    afterPop: async (payload) => {
+      await newsStore.update(payload.itemId, {
+        status: "processing",
+      });
+    },
+  });
+
+  async function pushBatch(ids = []) {
+    const results = [];
+    for (const id of ids) {
+      results.push(base.push({ itemId: id }));
     }
-    if (type === "social") {
-      return socialStore.update(id, payload);
-    }
-  },
-});
 
-module.exports = { newsQueue, socialQueue, crawlQueue };
+    return results;
+  }
+
+  return {
+    ...base,
+    pushBatch,
+  };
+}
+
+function makeSocialQueue() {
+  const base = makeBaseQueue(SOCIAL_COLLECTION, {
+    beforePush: async (payload) => {
+      await newsStore.update(payload.itemId, {
+        status: "queued",
+        queuedAt: new Date(),
+      });
+    },
+
+    afterPop: async (payload) => {
+      await newsStore.update(payload.itemId, {
+        status: "processing",
+      });
+    },
+  });
+
+  async function pushBatch(ids = []) {
+    const results = [];
+    for (const id of ids) {
+      const item = await socialStore.get(id);
+      if (!item) continue;
+
+      const pages = (item.pages || []).filter((p) => p.status === "pending");
+      for (const p of pages) {
+        const scheduleAt = p.schedule
+          ? await computeScheduleAt({ pageId: itemPage.pageId })
+          : Date.now();
+
+        const r = await base.push({
+          itemId: socialId,
+          page: p.page,
+          scheduleAt,
+        });
+
+        await commitScheduleForPage(itemPage.pageId, scheduleAt);
+        results.push(r);
+      }
+    }
+
+    return results;
+  }
+
+  return {
+    ...base,
+    pushBatch,
+  };
+}
+
+module.exports = {
+  newsQueue: makeNewsQueue(),
+  socialQueue: makeSocialQueue(),
+  crawlQueue: makeCrawlQueue(),
+};

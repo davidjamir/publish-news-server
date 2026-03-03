@@ -45,7 +45,6 @@ module.exports = async (req, res) => {
 
         if (force) {
           await newsQueue.del(newsId);
-          await newsQueue.deleteDedupe(newsId);
         }
         const item = await newsStore.get(newsId);
         if (!item) {
@@ -59,7 +58,7 @@ module.exports = async (req, res) => {
             .json({ ok: false, error: "Item is not newsItem" });
         }
         // nếu vẫn dùng payload {id,batchId} thì dùng kiểu cũ
-        const r = await newsQueue.push(newsId, { dedupe: true });
+        const r = await newsQueue.push({ itemId: newsId });
 
         return res.json({ ok: true, action, newsId, ...r });
       }
@@ -81,7 +80,7 @@ module.exports = async (req, res) => {
             .json({ ok: false, error: "Item is not socialItem" });
         }
 
-        const r = await newsQueue.pushFromBatch(batch, { dedupe: true });
+        const r = await newsQueue.pushBatch((batch.index = []));
         return res.json({ ok: true, action, batchId, ...r });
       }
 

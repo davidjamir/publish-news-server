@@ -98,11 +98,11 @@ module.exports = async (req, res) => {
     ];
 
     await socialStore.update(item.itemId, { pages: payload });
-    const member = `${itemLink.itemId}|${page}`;
-    const r = scheduleOn
-      ? await socialQueue.scheduleOne(member, scheduleAt, { dedupe: false })
-      : await socialQueue.push(member, { dedupe: false });
-
+    await socialQueue.push({
+      itemId: itemLink.itemId,
+      page,
+      scheduleAt,
+    });
     await commitScheduleForPage(itemPage.pageId, scheduleAt);
 
     title = item.title;
