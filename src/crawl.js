@@ -12,11 +12,6 @@ const {
 const MIN_DELAY_MS = 5 * 60 * 1000; // 5 phút
 const MAX_RETRY = 10;
 
-function parseQueueId(raw) {
-  const [itemId, type, countRetry = "0"] = String(raw).split("|");
-  return { itemId, type, countRetry: Number(countRetry) };
-}
-
 function pickRandom(arr = []) {
   if (!Array.isArray(arr) || arr.length === 0) return null;
   return arr[Math.floor(Math.random() * arr.length)];
@@ -193,10 +188,11 @@ async function runCrawl({ limit = 10, dryRun = false } = {}) {
         crawlStatus: "done",
       });
     }
-    const html = type === "news" ? toStr(result.crawlHtml || item.html) : "";
-    const hasValidHtml = type !== "news" || html.length >= 2000;
+    const html =
+      doc.type === "news" ? toStr(result.crawlHtml || item.html) : "";
+    const hasValidHtml = doc.type !== "news" || html.length >= 2000;
 
-    if (!hasValidHtml && type === "news") {
+    if (!hasValidHtml && doc.type === "news") {
       console.log("Item not has valid html");
       retryList.push({
         itemId: doc.itemId,
@@ -206,7 +202,7 @@ async function runCrawl({ limit = 10, dryRun = false } = {}) {
       continue;
     }
 
-    if (type === "news" && !dryRun) {
+    if (doc.type === "news" && !dryRun) {
       await newsQueue.push({ itemId: doc.itemId });
       enqueued++;
     }
@@ -214,7 +210,7 @@ async function runCrawl({ limit = 10, dryRun = false } = {}) {
     const pages = (Array.isArray(item.pages) ? item.pages : []).filter(
       (item) => item.page && item.modeSocial === "auto",
     );
-    if (type === "social" && pages.length > 0) {
+    if (doc.type === "social" && pages.length > 0) {
       const response = [];
 
       for (const i of pages) {
