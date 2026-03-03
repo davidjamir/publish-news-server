@@ -11,7 +11,7 @@ const getFlagValue = (flags = [], key, defaultValue = "") => {
   return v || defaultValue;
 };
 
-const getType = (flags = [], defaultType = "news") => {
+const getType = (flags = [], defaultType = "") => {
   const t = getFlagValue(flags, "type", defaultType).toLowerCase();
   if (t !== "news" && t !== "social")
     throw new Error("type must be news|social");
