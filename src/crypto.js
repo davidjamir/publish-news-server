@@ -16,7 +16,7 @@ function buildHashBatchId({ chatId, source, items }) {
     .digest("hex");
 }
 
-function buildHashItemId(chatId, item = {}) {
+function buildHashItemId(chatId = "", item = {}) {
   const primary = String(item.link || item.guid || "").trim();
   if (!primary) throw new Error("Missing guid/link for item");
   const title = item.title || "";
