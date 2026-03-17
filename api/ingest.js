@@ -133,11 +133,13 @@ module.exports = async (req, res) => {
             `https://${blog.wrapDomain}` + url.pathname + url.search;
         }
 
-        await socialStore.push(item);
+        const { isNew } = await socialStore.push(item);
+        if (!isNew) continue; // ← khoá social
+
         await linkStore.push({ itemId: item.itemId, link: toStr(item.link) });
       } else {
-        const storeResult = await newsStore.push(item);
-        if (!storeResult.isNew) continue;
+        const { isNew } = await newsStore.push(item);
+        if (!isNew) continue; // ← khoá news
       }
       await crawlQueue.push({
         itemId: item.itemId,
