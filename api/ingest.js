@@ -101,7 +101,7 @@ module.exports = async (req, res) => {
     payload.type = type;
     payload.items = await Promise.all(
       payload.items.map(async (it) => {
-        const itemId = buildHashItemId(payload.batchId, it);
+        const itemId = buildHashItemId(payload.chatId, it);
         const snippet = cutPointerPrefixAnywhere(it.snippet);
         const item = {
           ...it,

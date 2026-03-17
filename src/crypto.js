@@ -6,7 +6,7 @@ function buildHashBatchId({ chatId, source, items }) {
     feedUrl: String(source?.feedUrl || ""),
     mode: String(source?.mode || ""),
     guids: (items || []).map((it) =>
-      String(it?.guid || it?.link || it?.snippet || "")
+      String(it?.guid || it?.link || it?.snippet || ""),
     ),
   };
 
@@ -16,15 +16,14 @@ function buildHashBatchId({ chatId, source, items }) {
     .digest("hex");
 }
 
-function buildHashItemId(batchId, item = {}) {
-  
+function buildHashItemId(chatId, item = {}) {
   const primary = String(item.link || item.guid || "").trim();
   if (!primary) throw new Error("Missing guid/link for item");
   const title = item.title || "";
 
   return crypto
     .createHash("sha256")
-    .update(`${batchId}|${primary}|${title}`)
+    .update(`${chatId}|${primary}|${title}`)
     .digest("hex");
 }
 
