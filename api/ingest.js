@@ -136,7 +136,8 @@ module.exports = async (req, res) => {
         await socialStore.push(item);
         await linkStore.push({ itemId: item.itemId, link: toStr(item.link) });
       } else {
-        await newsStore.push(item);
+        const storeResult = await newsStore.push(item);
+        if (!storeResult.isNew) continue;
       }
       await crawlQueue.push({
         itemId: item.itemId,

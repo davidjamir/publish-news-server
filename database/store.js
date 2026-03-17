@@ -15,20 +15,22 @@ async function insertManyItems(collectionName, payload) {
 async function insertOneItem(collectionName, filter, payload) {
   try {
     const col = await getCollection(collectionName);
+    const now = new Date();
     const update = {
       $set: {
         ...payload,
-        updatedAt: new Date(),
+        updatedAt: now,
       },
       $setOnInsert: {
-        createdAt: new Date(),
+        createdAt: now,
       },
     };
     const result = await col.findOneAndUpdate(filter, update, {
       upsert: true,
       returnDocument: "after",
     });
-    return result;
+    const isNew = result.createdAt?.getTime() === result.updatedAt?.getTime();
+    return { result, isNew };
   } catch (error) {
     console.error("Error inserting document:", error);
     throw error;

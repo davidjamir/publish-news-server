@@ -26,9 +26,13 @@ function makeStore({
     if (!id) throw new Error("payload id is required");
 
     const filter = { [idField]: id };
-    const result = await insertOneItem(collectionName, filter, payload);
+    const { result, isNew } = await insertOneItem(
+      collectionName,
+      filter,
+      payload,
+    );
 
-    return { ok: true, id, result };
+    return { ok: true, id, result, isNew };
   }
 
   async function get(id) {
