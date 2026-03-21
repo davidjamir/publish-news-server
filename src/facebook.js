@@ -3,8 +3,7 @@ const { socialStore } = require("./store");
 const { isoTimeZone } = require("../helper/timeZone");
 const { getOnePage } = require("../database/pages");
 
-const FB_GRAPH_BASE = `https://graph.facebook.com/v24.0`;
-const MAX_NUMBER_TAGS = 5;
+const FB_GRAPH_BASE = `https://graph.facebook.com/v25.0`;
 
 const commentTemplates = [
   "🔎 Full story here:",
