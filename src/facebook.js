@@ -251,6 +251,7 @@ async function getFacebookAPIByName(pageName) {
 }
 
 function buildTrackingLink(link) {
+  if (Math.random() < 0.5) return link;
   const randomId = (len = 5) =>
     Math.random()
       .toString(36)
@@ -287,9 +288,6 @@ function buildTrackingLink(link) {
     `refid=${randomId(5)}`,
     `src_id=${randomId(6)}`,
     `campaign=${randomId(5)}`,
-    `cid=${randomId(4)}`,
-    `sid=${randomId(4)}`,
-    `aid=${randomId(5)}`,
 
     `t=${ts}`,
     `ts=${ts}`,
@@ -340,27 +338,70 @@ function generateCTA(link) {
   return cta + emphasis[Math.floor(Math.random() * emphasis.length)];
 }
 
+function normalizeTags(tags = []) {
+  return [
+    ...new Set(
+      tags
+        .map((t) => toStr(t).trim().toLowerCase())
+        .filter((t) => t.length > 0)
+        .map((t) => t.replace(/\s+/g, "")),
+    ),
+  ];
+}
+
+function pickRandomTagsWithVariance(tags = []) {
+  if (!Array.isArray(tags) || tags.length === 0) return [];
+  const maxAvailable = Math.min(tags.length, 5); // mày chỉ dùng tối đa 5
+
+  // 🔥 5% phá pattern
+  if (Math.random() < 0.05) {
+    const randomCount = Math.floor(Math.random() * (maxAvailable + 1));
+    return pickRandomTags(tags, randomCount).map(
+      (t) => "#" + toStr(t).trim().replace(/\s+/g, ""),
+    );
+  }
+
+  const roll = Math.random();
+
+  let count = 0;
+
+  if (roll < 0.2) {
+    count = 0; // 20% không dùng
+  } else if (roll < 0.4) {
+    count = 1; // 20% dùng 1
+  } else if (roll < 0.7) {
+    count = 2 + Math.floor(Math.random() * 2); // 30% dùng 2-3
+  } else if (roll < 0.9) {
+    count = 4; // 20% dùng 4
+  } else {
+    count = 5; // 10% dùng 5
+  }
+
+  if (count === 0) return [];
+  count = Math.min(count, maxAvailable);
+
+  return pickRandomTags(tags, count)
+    .filter(Boolean)
+    .map((t) => "#" + toStr(t).trim().replace(/\s+/g, ""));
+}
+
 function buildFaceBookPost(item = {}, tags = []) {
   const title = toStr(item?.title);
   const crawlSnippet = toStr(item?.crawlSnippet);
   const snippet = toStr(item?.snippet);
   const link = toStr(item?.wrapLink || item?.link);
   const imageUrl = toStr(item?.featuredImage);
-  const hashtags = Array.isArray(tags)
-    ? pickRandomTags(tags, MAX_NUMBER_TAGS)
-        .map((t) => toStr(t).trim())
-        .filter(Boolean)
-        .map((t) => "#" + t.replace(/\s+/g, "")) // bỏ space
-    : [];
+  const cleanTags = normalizeTags(tags);
+  const hashtags = pickRandomTagsWithVariance(cleanTags) || [];
 
-  const main = clampText(crawlSnippet || title + " " + snippet || "", 800);
+  const main = clampText(crawlSnippet || `${title} ${snippet || ""}`, 600);
   const mainText = removeLinks(fixDotSpacing(main));
 
   const modeRoll = Math.random();
   let mode;
-  if (modeRoll < 0.1) {
+  if (modeRoll < 0.25) {
     mode = "noCTA"; // 10% không có CTA caption
-  } else if (modeRoll < 0.2) {
+  } else if (modeRoll < 0.5) {
     mode = "soft"; // 10% CTA mềm (không link)
   } else {
     mode = "normal"; // 80% bình thường
@@ -396,15 +437,10 @@ function buildFaceBookPost(item = {}, tags = []) {
   }
 
   if (hashtags.length) {
-    const spacingTags = Math.random();
-    if (spacingTags < 0.3) {
-      parts.push("\n");
-    } else if (spacingTags < 0.6) {
-      parts.push("\n\n");
-    } else {
-      parts.push("\n\n\n");
-    }
-    parts.push(hashtags.slice(0, 5).join(" "));
+    const spacingModes = ["\n", "\n\n", "\n\n\n", " ", "\n👉 "];
+
+    parts.push(spacingModes[Math.floor(Math.random() * spacingModes.length)]);
+    parts.push(hashtags.join(" "));
   }
 
   return {
@@ -536,8 +572,9 @@ async function sendFaceBookPost(item, opts = {}) {
       }
 
       let commentRes = null;
+      const hasLinkInCaption = payload.message.includes("https://");
       const link = toStr(payload.wrapLink || payload.link);
-      if (link) {
+      if (link && !hasLinkInCaption) {
         if (!postId)
           throw new Error("sendPost: missing postId, cannot comment");
         commentRes = await sendFaceBookComment({
@@ -574,6 +611,7 @@ async function sendFaceBookPost(item, opts = {}) {
 
       results.push({ requestChatId, pageName: page, ok: false, error: msg });
     }
+    await new Promise((r) => setTimeout(r, 500 + Math.random() * 500));
   }
 
   const allDone = (item.pages || []).every((p) => p?.status === "done");
