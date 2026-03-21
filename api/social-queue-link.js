@@ -15,6 +15,8 @@ const {
 } = require("../src/scheduler");
 const { getFacebookAPIByName } = require("../src/facebook");
 
+const TTL_SCHEDULE = 60 * 60 * 24 * 10;
+
 const extractLink = (text = "") => {
   let s = String(text ?? "");
   s = s.replace(/\\r\\n|\\n|\\r/g, "\n");
@@ -76,9 +78,14 @@ module.exports = async (req, res) => {
         `Social page ${page} not found in database. Please checking token page and status of page!`,
       );
 
+    const now = Date.now();
     const scheduleAt = scheduleOn
       ? await computeScheduleAt({ pageId: itemPage.pageId })
-      : Date.now();
+      : now;
+    if (scheduleAt > now + TTL_SCHEDULE) {
+      throw new Error("Schedule exceeds TTL");
+    }
+
     const pages = Array.isArray(item.pages) ? item.pages : [];
 
     const payload = [
