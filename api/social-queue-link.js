@@ -41,25 +41,25 @@ module.exports = async (req, res) => {
   if (!isAuthorized(req)) {
     return res.status(401).json({ ok: false, error: "Unauthorized" });
   }
+  console.log("Cloudflare Trigger Worker Run Add Link", isoTimeZone());
+  const body = req.body || {};
+  if (!body || typeof body !== "object") {
+    return res.status(400).json({ ok: false, error: "Missing JSON body" });
+  }
 
   let title = "";
+
+  const { chatId, flags, tags, text, topics } = body;
+  const _flags = Array.isArray(flags) ? flags : [];
+  const _tags = Array.isArray(tags) ? tags : [];
+  const _topics = Array.isArray(topics) ? topics : [];
+  const type = getType(_flags);
+  const page = getPageName(_flags);
+  const modeSocial = getModeSocial(_flags);
+  const scheduleOn = getScheduleFlag(_flags);
+  const link = extractLink(text);
+
   try {
-    console.log("Cloudflare Trigger Worker Run Add Link", isoTimeZone());
-    const body = req.body || {};
-
-    if (!body || typeof body !== "object") {
-      return res.status(400).json({ ok: false, error: "Missing JSON body" });
-    }
-
-    const { chatId, flags, tags, text } = body;
-    const _flags = Array.isArray(flags) ? flags : [];
-    const _tags = Array.isArray(tags) ? tags : [];
-    const type = getType(_flags);
-    const page = getPageName(_flags);
-    const modeSocial = getModeSocial(_flags);
-    const scheduleOn = getScheduleFlag(_flags);
-    const link = extractLink(text);
-
     if (!chatId) throw new Error("Not found chatId in request!");
     if (!link) throw new Error("Not found LINK in message request!");
     if (type !== "social")
@@ -94,6 +94,7 @@ module.exports = async (req, res) => {
         index: pages.length,
         requestChatId: chatId,
         page,
+        topic: _topics?.[0] || null,
         tags: _tags,
         status: "pending",
         postId: "",
@@ -118,6 +119,7 @@ module.exports = async (req, res) => {
       ...r,
       chatId,
       page,
+      topic: _topics?.[0] || null,
       title,
       link: item.link,
       timeBangkok: isoTimeZone(new Date(scheduleAt)),

@@ -508,6 +508,7 @@ async function sendFaceBookPost(item, opts = {}) {
             requestChatId: pagesArr[idx]?.requestChatId,
             page: wantPage,
             tags: pagesArr[idx]?.tags || [],
+            topic: pagesArr[idx]?.topic,
           },
         ];
       })()
@@ -523,6 +524,7 @@ async function sendFaceBookPost(item, opts = {}) {
           requestChatId: p?.requestChatId,
           page: toStr(p?.page),
           tags: p?.tags,
+          topic: p?.topic,
         }));
 
   if (pending.length === 0) {
@@ -534,7 +536,7 @@ async function sendFaceBookPost(item, opts = {}) {
   }
 
   const results = [];
-  for (const { index, requestChatId, page, tags } of pending) {
+  for (const { index, requestChatId, page, tags, topic } of pending) {
     try {
       const target = await getFacebookAPIByName(page);
       if (!target) {
@@ -594,6 +596,7 @@ async function sendFaceBookPost(item, opts = {}) {
         ok: true,
         requestChatId,
         pageName: page,
+        topic,
         postId,
         post: created,
         comment: commentRes,
@@ -608,7 +611,7 @@ async function sendFaceBookPost(item, opts = {}) {
         error: msg,
       };
 
-      results.push({ requestChatId, pageName: page, ok: false, error: msg });
+      results.push({ requestChatId, pageName: page, topic, ok: false, error: msg });
     }
     await new Promise((r) => setTimeout(r, 500 + Math.random() * 500));
   }

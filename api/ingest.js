@@ -87,6 +87,7 @@ module.exports = async (req, res) => {
         index: pages.length,
         requestChatId: payload.chatId,
         page,
+        topic: payload.topics?.[0] || null,
         tags: payload.tags,
         status: "pending",
         postId: "",

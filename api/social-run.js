@@ -54,6 +54,7 @@ module.exports = async (req, res) => {
           type: "post-social",
           chatId: item.requestChatId,
           page: item.pageName,
+          topic: item.topic,
           title: socialItem.title,
           status: item.ok,
           text: toStr(item.error),
