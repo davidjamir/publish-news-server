@@ -15,7 +15,7 @@ const {
 } = require("../src/scheduler");
 const { getFacebookAPIByName } = require("../src/facebook");
 
-const TTL_SCHEDULE = 60 * 60 * 24 * 10;
+const TTL_SCHEDULE = 1000 * 60 * 60 * 24 * 10;
 
 const extractLink = (text = "") => {
   let s = String(text ?? "");
