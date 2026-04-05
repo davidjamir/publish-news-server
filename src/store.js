@@ -100,9 +100,10 @@ function validateItem(payload) {
   if (!toStr(payload.title)) throw new Error("payload.title is required");
   if (!toStr(payload.link)) throw new Error("payload.link is required");
   if (!toStr(payload.guid)) throw new Error("payload.guid is required");
-  if (!toStr(payload.snippet)) throw new Error("payload.snippet is required");
-  if (!toStr(payload.status)) throw new Error("payload.status is required");
   if (!toStr(payload.type)) throw new Error("payload.type is required");
+  if (!toStr(payload.snippet) && payload.type !== "social")
+    throw new Error("payload.snippet is required");
+  if (!toStr(payload.status)) throw new Error("payload.status is required");
   if (!toStr(payload.publishedAt))
     throw new Error("payload.publishedAt is required");
   if (!Array.isArray(payload.topics))
