@@ -107,6 +107,7 @@ module.exports = async (req, res) => {
         const item = {
           ...it,
           snippet,
+          pipeline: "traffic",
           status: "stored",
           type: payload.type,
           targets: payload.targets,

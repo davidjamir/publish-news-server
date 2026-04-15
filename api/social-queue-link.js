@@ -12,6 +12,8 @@ const {
 const {
   computeScheduleAt,
   commitScheduleForPage,
+  computeViralScheduleAt,
+  commitViralSchedule,
 } = require("../src/scheduler");
 const { getFacebookAPIByName } = require("../src/facebook");
 
@@ -49,7 +51,7 @@ module.exports = async (req, res) => {
 
   let title = "";
 
-  const { chatId, flags, tags, text, topics } = body;
+  const { chatId, flags, tags, text, topics, images, videos } = body;
   const _flags = Array.isArray(flags) ? flags : [];
   const _tags = Array.isArray(tags) ? tags : [];
   const _topics = Array.isArray(topics) ? topics : [];
@@ -58,73 +60,148 @@ module.exports = async (req, res) => {
   const modeSocial = getModeSocial(_flags);
   const scheduleOn = getScheduleFlag(_flags);
   const link = extractLink(text);
+  const hasMedia = (images?.length || videos?.length) > 0;
+  const pipeline = hasMedia ? "viral" : "traffic";
 
   try {
     if (!chatId) throw new Error("Not found chatId in request!");
-    if (!link) throw new Error("Not found LINK in message request!");
-    if (type !== "social")
-      throw new Error("Missing type flag (expected type:social)");
     if (!page) throw new Error("Missing page flag (expected page:xxx)");
     if (modeSocial !== "auto") throw new Error("modeSocial must be auto");
+    if (type !== "social") throw new Error("Invalid type");
 
-    const itemLink = await linkStore.get(link);
-    if (!itemLink) throw new Error("Link not found in database!");
-    const item = await socialStore.get(itemLink.itemId);
-    if (!item)
-      throw new Error("Item not found, may be wait a minute for crawl!");
     const itemPage = await getFacebookAPIByName(page);
-    if (!itemPage)
-      throw new Error(
-        `Social page ${page} not found in database. Please checking token page and status of page!`,
-      );
+    if (!itemPage) throw new Error(`Page ${page} not found`);
 
-    const now = Date.now();
-    const scheduleAt = scheduleOn
-      ? await computeScheduleAt({ pageId: itemPage.pageId })
-      : now;
-    if (scheduleAt > now + TTL_SCHEDULE) {
-      throw new Error("Schedule exceeds TTL");
-    }
+    // -----------------------------
+    // PRIORITY 1: MEDIA SYSTEM
+    // -----------------------------
+    if (hasMedia) {
+      const hash = "media_viral_post_" + page + Date.now();
+      const item = {
+        snippet: text || "",
+        pipeline,
+        status: "stored",
+        type,
+        targets: [],
+        topics: [],
+        link: link || hash,
+        guid: link || hash,
+        title: hash,
+        media: [
+          ...(images || []).map((url) => ({ type: "image", url })),
+          ...(videos || []).map((url) => ({ type: "video", url })),
+        ],
+        pages: [
+          {
+            index: 0,
+            requestChatId: chatId,
+            page,
+            topic: _topics?.[0] || null,
+            tags: _tags,
+            status: "pending",
+            postId: "",
+            error: "",
+            modeSocial,
+            schedule: scheduleOn,
+            createdAt: new Date().toISOString(),
+          },
+        ],
+        publishedAt: new Date().toISOString(),
+        itemId: hash,
+        batchId: "batch_" + hash,
+      };
 
-    const pages = Array.isArray(item.pages) ? item.pages : [];
+      const now = Date.now();
+      const scheduleAt = scheduleOn
+        ? await computeViralScheduleAt({ pageId: itemPage.pageId })
+        : now;
 
-    const payload = [
-      ...pages,
-      {
-        index: pages.length,
-        requestChatId: chatId,
+      if (scheduleAt > now + TTL_SCHEDULE) {
+        throw new Error("Schedule exceeds TTL");
+      }
+
+      await socialStore.push(item);
+
+      const r = await socialQueue.push({
+        itemId: hash,
+        page,
+        scheduleAt,
+      });
+
+      await commitViralSchedule(itemPage.pageId, scheduleAt);
+
+      return res.json({
+        status: r.ok,
+        chatId,
         page,
         topic: _topics?.[0] || null,
-        tags: _tags,
-        status: "pending",
-        postId: "",
-        error: "",
-        modeSocial,
-        schedule: scheduleOn,
-        createdAt: new Date().toISOString(),
-      },
-    ];
+        title: item.snippet,
+        link: "",
+        timeBangkok: isoTimeZone(new Date(scheduleAt)),
+        timeNewyork: isoTimeZone(new Date(scheduleAt), "America/New_York"),
+      });
+    }
 
-    await socialStore.update(item.itemId, { pages: payload });
-    const r = await socialQueue.push({
-      itemId: itemLink.itemId,
-      page,
-      scheduleAt,
-    });
-    await commitScheduleForPage(itemPage.pageId, scheduleAt);
+    // -----------------------------
+    // PRIORITY 2: LINK SYSTEM (OLD FLOW)
+    // -----------------------------
+    if (link) {
+      const itemLink = await linkStore.get(link);
+      if (!itemLink) throw new Error("Link not found in database!");
+      const item = await socialStore.get(itemLink.itemId);
+      if (!item)
+        throw new Error("Item not found, may be wait a minute for crawl!");
 
-    title = item.title;
-    return res.json({
-      status: r.ok,
-      ...r,
-      chatId,
-      page,
-      topic: _topics?.[0] || null,
-      title,
-      link: item.link,
-      timeBangkok: isoTimeZone(new Date(scheduleAt)),
-      timeNewyork: isoTimeZone(new Date(scheduleAt), "America/New_York"),
-    });
+      const now = Date.now();
+      const scheduleAt = scheduleOn
+        ? await computeScheduleAt({ pageId: itemPage.pageId })
+        : now;
+      if (scheduleAt > now + TTL_SCHEDULE) {
+        throw new Error("Schedule exceeds TTL");
+      }
+
+      const pages = Array.isArray(item.pages) ? item.pages : [];
+
+      const payload = [
+        ...pages,
+        {
+          index: pages.length,
+          requestChatId: chatId,
+          page,
+          topic: _topics?.[0] || null,
+          tags: _tags,
+          status: "pending",
+          postId: "",
+          error: "",
+          modeSocial,
+          schedule: scheduleOn,
+          createdAt: new Date().toISOString(),
+        },
+      ];
+
+      await socialStore.update(item.itemId, { pages: payload });
+      const r = await socialQueue.push({
+        itemId: itemLink.itemId,
+        page,
+        scheduleAt,
+      });
+      await commitScheduleForPage(itemPage.pageId, scheduleAt);
+
+      title = item.title;
+      return res.json({
+        status: r.ok,
+        ...r,
+        chatId,
+        page,
+        topic: _topics?.[0] || null,
+        title,
+        link: item.link,
+        timeBangkok: isoTimeZone(new Date(scheduleAt)),
+        timeNewyork: isoTimeZone(new Date(scheduleAt), "America/New_York"),
+      });
+    }
+
+    throw new Error("No valid content (media or link)");
   } catch (err) {
     console.error("[api/social-queue-link] error:", err);
     return res.status(500).json({

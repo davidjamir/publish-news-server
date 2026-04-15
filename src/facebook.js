@@ -1,7 +1,7 @@
 const { toStr } = require("../helper/toString");
 const { socialStore } = require("./store");
 const { isoTimeZone } = require("../helper/timeZone");
-const { getOnePage } = require("../database/pages");
+const { getOnePage, updateOnePage } = require("../database/pages");
 
 const FB_GRAPH_BASE = `https://graph.facebook.com/v25.0`;
 
@@ -572,6 +572,14 @@ async function sendFaceBookPost(item, opts = {}) {
         postId = toStr(created?.id);
       }
 
+      await updateOnePage(
+        { pageId: payload.pageId },
+        {
+          lastActivedAt: Date.now(),
+          updatedAt: new Date(),
+        },
+      );
+
       let commentRes = null;
       const hasLinkInCaption = payload.message.includes("https://");
       const link = toStr(payload.wrapLink || payload.link);
@@ -611,7 +619,13 @@ async function sendFaceBookPost(item, opts = {}) {
         error: msg,
       };
 
-      results.push({ requestChatId, pageName: page, topic, ok: false, error: msg });
+      results.push({
+        requestChatId,
+        pageName: page,
+        topic,
+        ok: false,
+        error: msg,
+      });
     }
     await new Promise((r) => setTimeout(r, 500 + Math.random() * 500));
   }

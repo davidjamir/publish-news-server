@@ -119,19 +119,64 @@ function moveToNextPrimeHour(ts) {
  * → gọi NGAY sau khi scheduleOne thành công
  */
 async function commitScheduleForPage(pageId, scheduleAtMs) {
+  const last = await getLastScheduledAt(pageId);
+  if (last >= scheduleAtMs) return { ok: true };
+
   await setLastScheduledAt(pageId, scheduleAtMs);
   return { ok: true, pageId, scheduleAt: scheduleAtMs };
+}
+
+async function getLastScheduledViralAt(pageId) {
+  const page = await getOnePage({ pageId });
+  const n = Number(page?.lastScheduledViralAt || 0);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+async function computeViralScheduleAt({ pageId, nowMs = Date.now() }) {
+  if (!pageId) throw new Error("pageId required");
+
+  const page = await getOnePage({ pageId });
+
+  const lastActive = Number(page?.lastActivedAt || 0);
+  const lastScheduledViral = Number(page?.lastScheduledViralAt || 0);
+
+  const GAP = 30 * 60 * 1000; // 30 phút
+  const BUFFER = 20 * 60 * 1000; // tránh đè post (20 phút)
+
+  const tNow = nowMs;
+  const tActive = lastActive ? lastActive + BUFFER : 0;
+  const tViral = lastScheduledViral ? lastScheduledViral + GAP : 0;
+
+  const scheduleAt = Math.max(tNow, tActive, tViral);
+
+  return scheduleAt;
+}
+
+async function commitViralSchedule(pageId, scheduleAt) {
+  if (!pageId) throw new Error("pageId required");
+  const last = await getLastScheduledViralAt(pageId);
+  if (last >= scheduleAt) return { ok: true };
+
+  await updateOnePage(
+    { pageId },
+    {
+      lastScheduledViralAt: scheduleAt,
+      updatedAt: new Date(),
+    },
+  );
+
+  return { ok: true };
 }
 
 module.exports = {
   getLastScheduledAt,
   setLastScheduledAt,
 
-  // compute
   computeScheduleAt,
-
-  // commit
   commitScheduleForPage,
+
+  computeViralScheduleAt,
+  commitViralSchedule,
 
   // config (export để debug/tuning)
   DEFAULT_GAP_MS,
