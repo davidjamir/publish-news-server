@@ -51,6 +51,7 @@ module.exports = async (req, res) => {
 
   let title = "";
 
+  console.log("Body: ", body);
   const { chatId, flags, tags, text, topics, images, videos, contentType } =
     body;
   const _flags = Array.isArray(flags) ? flags : [];
@@ -87,7 +88,7 @@ module.exports = async (req, res) => {
         topics: [],
         link: link || hash,
         guid: link || hash,
-        title: hash,
+        title: text || hash,
         contentType,
         media: [
           ...(images || []).map((url) => ({ type: "image", url })),
