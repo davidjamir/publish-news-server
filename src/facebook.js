@@ -488,6 +488,152 @@ async function sendFaceBookComment({ postId, pageToken, message }) {
   return graphFaceBookAPIPost(`/${postId}/comments`, pageToken, { message });
 }
 
+async function handleViralPost({ item, payload, published = false }) {
+  const media = [
+    ...(item.videos || []).map((v) => ["video", v]),
+    ...(item.images?.length > 1
+      ? [["album", item.images]]
+      : item.images?.length === 1
+        ? [["image", item.images[0]]]
+        : []),
+  ];
+  let current = Math.floor(Date.now() / 1000) + 600;
+
+  const results = [];
+  for (const [type, data] of media) {
+    current += 600 + (60 + Math.floor(Math.random() * 240)); // 10p + random
+
+    try {
+      let created = null;
+      if (type === "video") {
+        created = await graphFaceBookAPIPost(
+          `/${payload.pageId}/videos`,
+          payload.pageToken,
+          {
+            file_url: data,
+            description: payload.message,
+            published: false,
+            scheduled_publish_time: current,
+          },
+        );
+      }
+
+      if (type === "album") {
+        const ids = [];
+        const errors = [];
+
+        for (const img of data) {
+          try {
+            const res = await graphFaceBookAPIPost(
+              `/${payload.pageId}/photos`,
+              payload.pageToken,
+              { url: img, published: false },
+            );
+
+            if (res?.id) {
+              ids.push({ media_fbid: res.id });
+            } else {
+              errors.push(`NO_ID_RETURNED: ${img}`);
+            }
+          } catch (e) {
+            errors.push(`${img} -> ${String(e?.message || e)}`);
+          }
+        }
+        if (!ids.length) {
+          throw new Error(`ALBUM_ALL_UPLOAD_FAILED: ${errors.join(" | ")}`);
+        }
+
+        created = await graphFaceBookAPIPost(
+          `/${payload.pageId}/feed`,
+          payload.pageToken,
+          {
+            message: payload.message,
+            attached_media: JSON.stringify(ids),
+            published: false,
+            scheduled_publish_time: current,
+          },
+        );
+      }
+
+      if (type === "image") {
+        created = await graphFaceBookAPIPost(
+          `/${payload.pageId}/photos`,
+          payload.pageToken,
+          {
+            url: data,
+            caption: payload.message,
+            published: false,
+            scheduled_publish_time: current,
+          },
+        );
+      }
+
+      results.push({
+        type,
+        ok: true,
+        data,
+        postId: created?.id || created?.post_id,
+        created,
+      });
+    } catch (err) {
+      results.push({
+        type,
+        ok: false,
+        data,
+        error: String(err?.message || err),
+      });
+    }
+  }
+
+  return results;
+}
+
+async function handleTrafficPost({ payload, published }) {
+  try {
+    let created = null;
+    let type = "link";
+    if (toStr(payload.imageUrl)) {
+      type = "image";
+      created = await graphFaceBookAPIPost(
+        `/${payload.pageId}/photos`,
+        payload.pageToken,
+        {
+          url: payload.imageUrl,
+          caption: payload.message,
+          published,
+        },
+      );
+    } else {
+      created = await graphFaceBookAPIPost(
+        `/${payload.pageId}/feed`,
+        payload.pageToken,
+        {
+          message: payload.message,
+          link: payload.link,
+          published,
+        },
+      );
+    }
+
+    return [
+      {
+        type,
+        ok: true,
+        postId: created?.id || created?.post_id,
+        created,
+      },
+    ];
+  } catch (err) {
+    return [
+      {
+        type,
+        ok: false,
+        error: String(err?.message || err),
+      },
+    ];
+  }
+}
+
 async function sendFaceBookPost(item, opts = {}) {
   const published = opts?.published !== false;
 
@@ -546,31 +692,33 @@ async function sendFaceBookPost(item, opts = {}) {
       const payload = { ...target, ...post };
 
       let created = null;
-      let postId = "";
 
-      if (toStr(payload.imageUrl)) {
-        created = await graphFaceBookAPIPost(
-          `/${payload.pageId}/photos`,
-          payload.pageToken,
-          {
-            url: payload.imageUrl,
-            caption: payload.message,
-            published,
-          },
-        );
-        postId = toStr(created?.post_id);
+      if (item?.pipeline === "viral") {
+        created = await handleViralPost({ item, payload, published });
       } else {
-        created = await graphFaceBookAPIPost(
-          `/${payload.pageId}/feed`,
-          payload.pageToken,
-          {
-            message: payload.message,
-            link: payload.link,
-            published,
-          },
-        );
-        postId = toStr(created?.id);
+        created = await handleTrafficPost({ item, payload, published });
       }
+
+      if (!created || created.length === 0) {
+        throw new Error("NO_MEDIA_TO_POST");
+      }
+      const success = created.filter((r) => r.ok);
+      if (!success.length) {
+        const errors = created
+          .filter((r) => !r.ok)
+          .map((r) => r.error)
+          .join(" | ");
+
+        throw new Error(`ALL_POST_FAILED: ${errors}`);
+      }
+      // ưu tiên post có thể comment
+      const commentTarget = success.find(
+        (r) =>
+          r.postId &&
+          (r.type === "image" || r.type === "album" || r.type === "link"),
+      );
+
+      const postId = toStr(commentTarget?.postId);
 
       await updateOnePage(
         { pageId: payload.pageId },
@@ -582,21 +730,26 @@ async function sendFaceBookPost(item, opts = {}) {
 
       let commentRes = null;
       const hasLinkInCaption = payload.message.includes("https://");
-      const link = toStr(payload.wrapLink || payload.link);
-      if (link && !hasLinkInCaption) {
-        if (!postId)
-          throw new Error("sendPost: missing postId, cannot comment");
-        commentRes = await sendFaceBookComment({
-          postId,
-          pageToken: payload.pageToken,
-          message: `${commentTemplates[Math.floor(Math.random() * commentTemplates.length)]} ${link}`,
-        });
+      const link = toStr(payload.link);
+      const canComment = link && !hasLinkInCaption && commentTarget?.postId;
+
+      try {
+        if (canComment) {
+          commentRes = await sendFaceBookComment({
+            postId: commentTarget.postId,
+            pageToken: payload.pageToken,
+            message: `${commentTemplates[Math.floor(Math.random() * commentTemplates.length)]} ${link}`,
+          });
+        }
+      } catch (e) {
+        commentRes = { ok: false, error: String(e?.message || e) };
       }
 
+      const hasFail = created.some((r) => !r.ok);
       item.pages[index] = {
         ...item.pages[index],
-        status: "done",
-        postId,
+        status: hasFail ? "partial" : "done",
+        postIds: success.map((r) => r.postId).filter(Boolean),
         updatedAt: isoTimeZone(),
       };
 

@@ -89,6 +89,8 @@ module.exports = async (req, res) => {
         guid: link || hash,
         title: text || hash,
         contentType,
+        images,
+        videos,
         media: [
           ...(images || []).map((url) => ({ type: "image", url })),
           ...(videos || []).map((url) => ({ type: "video", url })),
