@@ -51,7 +51,6 @@ module.exports = async (req, res) => {
 
   let title = "";
 
-  console.log("Body: ", body);
   const { chatId, flags, tags, text, topics, images, videos, contentType } =
     body;
   const _flags = Array.isArray(flags) ? flags : [];
@@ -78,7 +77,7 @@ module.exports = async (req, res) => {
     // PRIORITY 1: MEDIA SYSTEM
     // -----------------------------
     if (hasMedia) {
-      const hash = "media_viral_post_" + page + Date.now();
+      const hash = "media_viral_post_" + page + "_" + Date.now();
       const item = {
         snippet: text || "",
         pipeline,

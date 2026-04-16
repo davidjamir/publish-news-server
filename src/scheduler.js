@@ -143,11 +143,17 @@ async function computeViralScheduleAt({ pageId, nowMs = Date.now() }) {
   const GAP = 30 * 60 * 1000; // 30 phút
   const BUFFER = 20 * 60 * 1000; // tránh đè post (20 phút)
 
+  // 🎲 random 1–5 phút
+  const RANDOM_MIN = 1 * 60 * 1000;
+  const RANDOM_MAX = 5 * 60 * 1000;
+  const randomDelay =
+    Math.floor(Math.random() * (RANDOM_MAX - RANDOM_MIN + 1)) + RANDOM_MIN;
+
   const tNow = nowMs;
   const tActive = lastActive ? lastActive + BUFFER : 0;
   const tViral = lastScheduledViral ? lastScheduledViral + GAP : 0;
 
-  const scheduleAt = Math.max(tNow, tActive, tViral);
+  const scheduleAt = Math.max(tNow, tActive, tViral) + randomDelay;
 
   return scheduleAt;
 }
