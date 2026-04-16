@@ -488,6 +488,38 @@ async function sendFaceBookComment({ postId, pageToken, message }) {
   return graphFaceBookAPIPost(`/${postId}/comments`, pageToken, { message });
 }
 
+function buildViralMessage(item = {}, tags = []) {
+  const title = toStr(item?.title);
+  const crawlSnippet = toStr(item?.crawlSnippet);
+  const snippet = toStr(item?.snippet);
+
+  const cleanTags = normalizeTags(tags);
+  const hashtags = pickRandomTagsWithVariance(cleanTags);
+
+  // content chính (ưu tiên snippet crawl cho tự nhiên)
+  const main = clampText(crawlSnippet || `${title} ${snippet || ""}`, 300);
+  const mainText = removeLinks(fixDotSpacing(main));
+
+  // 👉 thêm 1 chút "human tone" nhẹ (không phải CTA)
+  const endings = ["", "🤔", "😶", "👀", "…", "", ""];
+
+  const text =
+    mainText + (endings[Math.floor(Math.random() * endings.length)] || "");
+
+  const parts = [text];
+
+  // hashtags nhẹ, không spam
+  if (hashtags.length) {
+    const spacingModes = ["\n", "\n\n", " "];
+    parts.push(spacingModes[Math.floor(Math.random() * spacingModes.length)]);
+    parts.push(hashtags.join(" "));
+  }
+
+  return {
+    message: parts.filter(Boolean).join("\n"),
+  };
+}
+
 async function handleViralPost({ item, payload }) {
   const media = [
     ...(item.videos || []).map((v) => ["video", v]),
@@ -525,7 +557,7 @@ async function handleViralPost({ item, payload }) {
           payload.pageToken,
           {
             file_url: data,
-            description: item.snippet,
+            description: payload.message,
             ...commonParams,
           },
         );
@@ -560,7 +592,7 @@ async function handleViralPost({ item, payload }) {
           `/${payload.pageId}/feed`,
           payload.pageToken,
           {
-            message: item.snippet,
+            message: payload.message,
             attached_media: JSON.stringify(ids),
             ...commonParams,
           },
@@ -573,7 +605,7 @@ async function handleViralPost({ item, payload }) {
           payload.pageToken,
           {
             url: data,
-            caption: item.snippet,
+            caption: payload.message,
             ...commonParams,
           },
         );
@@ -701,7 +733,9 @@ async function sendFaceBookPost(item, opts = {}) {
         throw new Error(`FACEBOOK_TARGET_NOT_FOUND: ${page}`);
       }
       const post =
-        item?.pipeline === "viral" ? buildFaceBookPost(item, tags) : {};
+        item?.pipeline === "viral"
+          ? buildViralMessage(item, tags)
+          : buildFaceBookPost(item, tags);
       const payload = { ...target, ...post };
 
       let created = null;
