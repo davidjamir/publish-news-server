@@ -489,15 +489,13 @@ async function sendFaceBookComment({ postId, pageToken, message }) {
 }
 
 function buildViralMessage(item = {}, tags = []) {
-  const title = toStr(item?.title);
-  const crawlSnippet = toStr(item?.crawlSnippet);
   const snippet = toStr(item?.snippet);
 
   const cleanTags = normalizeTags(tags);
   const hashtags = pickRandomTagsWithVariance(cleanTags);
 
   // content chính (ưu tiên snippet crawl cho tự nhiên)
-  const main = clampText(crawlSnippet || `${title} ${snippet || ""}`, 300);
+  const main = clampText(snippet || "", 300);
   const mainText = removeLinks(fixDotSpacing(main));
 
   // 👉 thêm 1 chút "human tone" nhẹ (không phải CTA)
