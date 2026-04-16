@@ -488,7 +488,7 @@ async function sendFaceBookComment({ postId, pageToken, message }) {
   return graphFaceBookAPIPost(`/${postId}/comments`, pageToken, { message });
 }
 
-async function handleViralPost({ item, payload, published = false }) {
+async function handleViralPost({ item, payload }) {
   const media = [
     ...(item.videos || []).map((v) => ["video", v]),
     ...(item.images?.length > 1
@@ -500,20 +500,33 @@ async function handleViralPost({ item, payload, published = false }) {
   let current = Math.floor(Date.now() / 1000) + 600;
 
   const results = [];
+  let isFirst = true; // 🔥 thêm flag
   for (const [type, data] of media) {
-    current += 600 + (60 + Math.floor(Math.random() * 240)); // 10p + random
+    let scheduledTime = null;
+
+    if (!isFirst) {
+      current += 600 + (60 + Math.floor(Math.random() * 240)); // 10p + random
+      scheduledTime = current;
+    }
 
     try {
       let created = null;
+      const commonParams = isFirst
+        ? {
+            published: true, // 🔥 đăng ngay
+          }
+        : {
+            published: false,
+            scheduled_publish_time: scheduledTime,
+          };
       if (type === "video") {
         created = await graphFaceBookAPIPost(
           `/${payload.pageId}/videos`,
           payload.pageToken,
           {
             file_url: data,
-            description: payload.message,
-            published: false,
-            scheduled_publish_time: current,
+            description: item.snippet,
+            ...commonParams,
           },
         );
       }
@@ -547,10 +560,9 @@ async function handleViralPost({ item, payload, published = false }) {
           `/${payload.pageId}/feed`,
           payload.pageToken,
           {
-            message: payload.message,
+            message: item.snippet,
             attached_media: JSON.stringify(ids),
-            published: false,
-            scheduled_publish_time: current,
+            ...commonParams,
           },
         );
       }
@@ -561,9 +573,8 @@ async function handleViralPost({ item, payload, published = false }) {
           payload.pageToken,
           {
             url: data,
-            caption: payload.message,
-            published: false,
-            scheduled_publish_time: current,
+            caption: item.snippet,
+            ...commonParams,
           },
         );
       }
@@ -583,6 +594,7 @@ async function handleViralPost({ item, payload, published = false }) {
         error: String(err?.message || err),
       });
     }
+    isFirst = false; // 🔥 nhớ set sau mỗi vòng
   }
 
   return results;
@@ -688,7 +700,8 @@ async function sendFaceBookPost(item, opts = {}) {
       if (!target) {
         throw new Error(`FACEBOOK_TARGET_NOT_FOUND: ${page}`);
       }
-      const post = buildFaceBookPost(item, tags);
+      const post =
+        item?.pipeline === "viral" ? buildFaceBookPost(item, tags) : {};
       const payload = { ...target, ...post };
 
       let created = null;
