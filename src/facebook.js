@@ -631,9 +631,9 @@ async function handleViralPost({ item, payload }) {
 }
 
 async function handleTrafficPost({ payload, published }) {
+  let created = null;
+  let type = "link";
   try {
-    let created = null;
-    let type = "link";
     if (toStr(payload.imageUrl)) {
       type = "image";
       created = await graphFaceBookAPIPost(
