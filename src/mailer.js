@@ -214,8 +214,6 @@ async function sendMail(item = {}) {
   const requestedDns = normalizeTargetDnsList(item.targets);
 
   const allTargets = await getManyBlogs({ channel: "Backup", enabled: true });
-  if (!allTargets.length)
-    throw new Error("No targets valid for post to website");
 
   let validList = [];
   if (requestedDns.length) {
