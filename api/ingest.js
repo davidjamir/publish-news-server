@@ -107,6 +107,8 @@ module.exports = async (req, res) => {
         const item = {
           ...it,
           snippet,
+          chatId: payload.chatId,
+          source: payload.source,
           pipeline: "traffic",
           status: "stored",
           type: payload.type,
@@ -139,9 +141,11 @@ module.exports = async (req, res) => {
         if (!isNew) continue; // ← khoá social
 
         await linkStore.push({ itemId: item.itemId, link: toStr(item.link) });
-      } else {
+      } else if (item.type === "news" && item.targets.length > 0) {
         const { isNew } = await newsStore.push(item);
         if (!isNew) continue; // ← khoá news
+      } else {
+        continue;
       }
       await crawlQueue.push({
         itemId: item.itemId,
