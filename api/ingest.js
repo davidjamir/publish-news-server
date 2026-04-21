@@ -124,6 +124,10 @@ module.exports = async (req, res) => {
     );
 
     payload.index = payload.items.map((it) => it.itemId);
+
+    if (payload.type === "news" && payload.targets.length <= 0) {
+      throw new Error("Invalid targets list of batch. Must be has variables");
+    }
     await batchStore.push({ ...payload, status: "stored" });
 
     for (const item of payload.items) {
@@ -141,11 +145,9 @@ module.exports = async (req, res) => {
         if (!isNew) continue; // ← khoá social
 
         await linkStore.push({ itemId: item.itemId, link: toStr(item.link) });
-      } else if (item.type === "news" && item.targets.length > 0) {
+      } else {
         const { isNew } = await newsStore.push(item);
         if (!isNew) continue; // ← khoá news
-      } else {
-        continue;
       }
       await crawlQueue.push({
         itemId: item.itemId,
