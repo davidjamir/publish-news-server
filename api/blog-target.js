@@ -58,6 +58,7 @@ module.exports = async (req, res) => {
           blogEmail,
           blogUser: t.blogUser,
           blogPassword: t.blogPassword,
+          blogId: t?.blogId,
           blogPriority: t.blogPriority,
           wrapDomain: t.wrapDomain,
           channel: t.channel,

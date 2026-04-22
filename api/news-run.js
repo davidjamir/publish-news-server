@@ -1,7 +1,7 @@
 const { isAuthorized } = require("../helper/isAuthorized");
 const { newsStore } = require("../src/store");
 const { newsQueue } = require("../src/queue");
-const { sendMail } = require("../src/mailer");
+const { sendPost } = require("../src/mailer");
 const { isoTimeZone } = require("../helper/timeZone");
 
 const MAX_PER_RUN = 2;
@@ -38,7 +38,7 @@ module.exports = async (req, res) => {
         if (!newsItem) throw new Error("newsItem missing/expired");
 
         // Cần set toDns, nếu muốn gửi tới dns cụ thể, mode auto thì truyền toDns rỗng
-        const r = await sendMail(newsItem);
+        const r = await sendPost(newsItem);
         await newsStore.update(doc.itemId, { status: "sent", site: r.blogDns });
       } catch (e) {
         status = "failed";

@@ -1,6 +1,7 @@
 const nodemailer = require("nodemailer");
 const { toStr } = require("../helper/toString");
 const { getManyBlogs } = require("../database/blogs");
+const { getOneAccountAPI } = require("../database/account-api");
 const { injectAdsForBlog } = require("../src/ads");
 const {
   getQuotasToday,
@@ -132,6 +133,7 @@ async function pickBlogTargetWithQuota(targets = []) {
     blogEmail: toStr(target.blogEmail),
     blogUser: toStr(target.blogUser),
     blogPassword: toStr(target.blogPassword),
+    blogId: toStr(target.blogId),
   };
 }
 
@@ -201,11 +203,69 @@ function buildMailFromItem(item) {
 }
 
 /**
- * sendMail:
- * - Nếu truyền `to` => gửi thẳng
- * - Nếu không truyền `to` => auto chọn blog target theo round-robin theo ngày (UTC+7)
+ * sendPost:
+ * - Nếu tồn tại đủ các điều kiện API Blogger thì gửi thẳng.
+ * - Nếu không hợp lệ, dùng fallback SendMail.
  */
-async function sendMail(item = {}) {
+
+async function sendBloggerAPI({ subject, content, accessToken } = {}, picked) {
+  const res = await fetch(
+    `https://www.googleapis.com/blogger/v3/blogs/${picked.blogId}/posts/`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        kind: "blogger#post",
+        title: subject,
+        content,
+      }),
+    },
+  );
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error("Blogger API error: " + text);
+  }
+
+  const data = await res.json();
+
+  return {
+    ok: true,
+    type: "api",
+    postId: data.id,
+    url: data.url,
+    blogDns: picked.blogDns || "",
+  };
+}
+
+async function sendMail({ subject, content } = {}, picked) {
+  const transporter = getTransporter(picked);
+  const from = toStr(picked.blogUser);
+  const to = toStr(picked.blogEmail);
+  if (!to) throw new Error("sendMail: missing recipient email");
+
+  const info = await transporter.sendMail({
+    from,
+    to,
+    subject,
+    html: content,
+  });
+
+  return {
+    ok: true,
+    type: "mail",
+    to,
+    blogDns: picked.blogDns || "",
+    messageId: info.messageId,
+    accepted: info.accepted,
+    rejected: info.rejected,
+  };
+}
+
+async function sendPost(item = {}) {
   if (!item) throw new Error("sendMail: item is required");
   const { subject, html } = buildMailFromItem(item);
   if (html.length < 500)
@@ -224,21 +284,38 @@ async function sendMail(item = {}) {
   }
 
   const picked = await pickWithFallback(validList, allTargets);
-  if (!picked) throw new Error("sendMail: not founded target valid");
+  if (!picked) throw new Error("sendPost: not found target valid");
+  if (!picked.blogEmail) throw new Error("sendPost: target's email not valid");
 
   const content = await injectAdsForBlog(html, picked.blogDns);
 
-  const transporter = getTransporter(picked);
-  const from = toStr(picked.blogUser);
-  const to = toStr(picked.blogEmail);
-  if (!to) throw new Error("sendMail: missing recipient email");
+  // ===== TRY API FIRST =====
+  try {
+    if (!picked.blogId) throw new Error("sendAPI: account blog's ID not valid");
 
-  const info = await transporter.sendMail({
-    from,
-    to,
-    subject,
-    html: content,
-  });
+    const account = await getOneAccountAPI({ email: picked.blogEmail });
+    if (!account.accessToken)
+      throw new Error("sentAPI: account's token not valid");
+
+    const result = await sendBloggerAPI(
+      { subject, content, accessToken: account.accessToken },
+      picked,
+    );
+    console.log("API successful → email: ", picked.blogEmail);
+
+    await increaseQuota({
+      type: "subdomain",
+      domain: picked.blogDns,
+      user: picked.blogUser,
+    });
+
+    return result;
+  } catch (err) {
+    console.error("API failed → fallback to mail → ", err.message);
+  }
+
+  // ===== FALLBACK MAIL =====
+  const result = await sendMail({ subject, content }, picked);
 
   await increaseQuota({
     type: "subdomain",
@@ -246,14 +323,7 @@ async function sendMail(item = {}) {
     user: picked.blogUser,
   });
 
-  return {
-    ok: true,
-    to,
-    blogDns: picked.blogDns || "",
-    messageId: info.messageId,
-    accepted: info.accepted,
-    rejected: info.rejected,
-  };
+  return result;
 }
 
-module.exports = { sendMail };
+module.exports = { sendPost };
