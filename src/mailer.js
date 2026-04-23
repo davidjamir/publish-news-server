@@ -285,16 +285,17 @@ async function sendPost(item = {}) {
 
   const picked = await pickWithFallback(validList, allTargets);
   if (!picked) throw new Error("sendPost: not found target valid");
-  if (!picked.blogEmail) throw new Error("sendPost: target's email not valid");
+  if (!picked?.blogEmail) throw new Error("sendPost: target's email not valid");
 
   const content = await injectAdsForBlog(html, picked.blogDns);
 
   // ===== TRY API FIRST =====
   try {
-    if (!picked.blogId) throw new Error("sendAPI: account blog's ID not valid");
+    if (!picked?.blogId)
+      throw new Error("sendAPI: account blog's ID not valid");
 
     const account = await getOneAccountAPI({ email: picked.blogEmail });
-    if (!account.accessToken)
+    if (!account?.accessToken)
       throw new Error("sentAPI: account's token not valid");
 
     const result = await sendBloggerAPI(
