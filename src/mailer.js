@@ -293,8 +293,7 @@ async function sendPost(item = {}) {
   try {
     if (!picked?.blogId)
       throw new Error("sendAPI: account blog's ID not valid");
-
-    const account = await getOneAccountAPI({ email: picked.blogEmail });
+    const account = await getOneAccountAPI({ email: picked.blogUser });
     if (!account?.accessToken)
       throw new Error("sentAPI: account's token not valid");
 
@@ -302,7 +301,7 @@ async function sendPost(item = {}) {
       { subject, content, accessToken: account.accessToken },
       picked,
     );
-    console.log("API successful → email: ", picked.blogEmail);
+    console.log("API successful → email: ", picked.blogUser);
 
     await increaseQuota({
       type: "subdomain",
