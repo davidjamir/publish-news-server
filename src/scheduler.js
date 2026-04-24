@@ -1,5 +1,6 @@
 const { getOnePage, updateOnePage } = require("../database/pages");
 
+const DEFAULT_GAP_VIRAL = 30 * 60 * 1000;
 const DEFAULT_GAP_MS = 120 * 60 * 1000; // 120 phút
 const DEFAULT_JITTER_MS = 3 * 60 * 1000; // ±3 phút
 const US_TIMEZONE = "America/New_York";
@@ -74,10 +75,13 @@ async function computeScheduleAt({
 }) {
   if (!pageId) throw new Error("computeScheduleAt: pageId is required");
 
+  const page = await getOnePage({ pageId });
   const last = await getLastScheduledAt(pageId);
 
+  const GAP = page?.trafficInterval ? page.trafficInterval * 60 * 1000 : gapMs;
+
   // base timeline
-  let base = Math.max(nowMs, last || 0) + gapMs + randomMinutes();
+  let base = Math.max(nowMs, last || 0) + GAP + randomMinutes();
 
   // nếu rơi ngoài giờ vàng → đẩy tới giờ vàng tiếp theo
   if (!isInPrimeHour(base)) {
@@ -140,8 +144,10 @@ async function computeViralScheduleAt({ pageId, nowMs = Date.now() }) {
   const lastActive = Number(page?.lastActivedAt || 0);
   const lastScheduledViral = Number(page?.lastScheduledViralAt || 0);
 
-  const GAP = 30 * 60 * 1000; // 30 phút
   const BUFFER = 20 * 60 * 1000; // tránh đè post (20 phút)
+  const GAP = page?.viralInterval
+    ? page.viralInterval * 60 * 1000
+    : DEFAULT_GAP_VIRAL;
 
   // 🎲 random 1–5 phút
   const RANDOM_MIN = 1 * 60 * 1000;
