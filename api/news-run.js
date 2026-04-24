@@ -36,6 +36,8 @@ module.exports = async (req, res) => {
       try {
         const newsItem = await newsStore.get(doc.itemId);
         if (!newsItem) throw new Error("newsItem missing/expired");
+        if (!newsItem.featuredImage)
+          throw new Error("newsItem missing featured image");
 
         // Cần set toDns, nếu muốn gửi tới dns cụ thể, mode auto thì truyền toDns rỗng
         const r = await sendPost(newsItem);

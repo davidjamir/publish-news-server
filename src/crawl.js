@@ -200,6 +200,11 @@ async function runCrawl({ limit = 10, dryRun = false } = {}) {
       continue;
     }
 
+    // Không cho đăng vào queue nào cả, khi mà không có featured Image
+    if (!result?.featuredImage) {
+      continue;
+    }
+
     if (doc.type === "news" && !dryRun) {
       await newsQueue.push({ itemId: doc.itemId });
       enqueued++;
