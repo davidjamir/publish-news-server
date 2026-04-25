@@ -1,6 +1,8 @@
 const { getDb } = require("./mongodb");
 const { getDayKeyAndTtlSec } = require("../helper/timeZone");
 
+const ORIGIN_LIMIT_DEFAULT = 300;
+const SUBDOMAIN_LIMIT_DEFAULT = 40;
 // ===== Helpers =====
 
 function getDateKey() {
@@ -49,18 +51,25 @@ async function getQuotasToday(type, keys = []) {
   return map;
 }
 
-async function increaseQuota({ type, user, domain, limit = 40 }) {
+async function increaseQuota({
+  type,
+  user,
+  domain,
+  limit = SUBDOMAIN_LIMIT_DEFAULT,
+}) {
   const col = await getCollection();
   const date = getDateKey();
   const now = new Date();
 
   const ops = [];
 
-  function buildDoc({ type, key, domain, limit }) {
+  function buildDoc({ type, key, user, origin, domain, limit }) {
     return {
       _id: buildQuotaId(type, key, date),
       type,
       key,
+      user,
+      origin,
       domain,
       limit,
       date,
@@ -104,7 +113,7 @@ async function increaseQuota({ type, user, domain, limit = 40 }) {
             user,
             origin,
             domain: origin,
-            limit: 120,
+            limit: ORIGIN_LIMIT_DEFAULT,
           }),
         },
         { upsert: true },
