@@ -75,7 +75,7 @@ module.exports = async (req, res) => {
       await sendNotify({
         type: "post-sites",
         topic: item.topic,
-        title: socialItem.title,
+        title: item.title,
         status: item.status,
         text: toStr(item?.error || ""),
         timeBangkok: isoTimeZone(new Date()),
