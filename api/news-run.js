@@ -69,11 +69,11 @@ module.exports = async (req, res) => {
       results.push(response);
     }
     for (const item of results) {
-      if (item.status !== "failed") {
-        continue;
-      }
+      // if (item.status !== "failed") {
+      //   continue;
+      // }
       await sendNotify({
-        type: "post-site",
+        type: "post-sites",
         topic: item.topic,
         title: socialItem.title,
         status: item.status,
