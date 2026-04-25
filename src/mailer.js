@@ -285,9 +285,10 @@ async function sendPost(item = {}) {
 
   const picked = await pickWithFallback(validList, allTargets);
   if (!picked) throw new Error("sendPost: not found target valid");
-  if (!picked?.blogEmail) throw new Error("sendPost: target's email not valid");
 
   const content = await injectAdsForBlog(html, picked.blogDns);
+  const error1 = null;
+  const error2 = null;
 
   // ===== TRY API FIRST =====
   try {
@@ -311,19 +312,32 @@ async function sendPost(item = {}) {
 
     return result;
   } catch (err) {
+    const error1 = "API failed → fallback to mail → " + err.message;
     console.error("API failed → fallback to mail → ", err.message);
   }
 
   // ===== FALLBACK MAIL =====
-  const result = await sendMail({ subject, content }, picked);
+  try {
+    if (!picked?.blogEmail)
+      throw new Error("sendMail: target's email not valid");
+    const result = await sendMail({ subject, content }, picked);
 
-  await increaseQuota({
-    type: "subdomain",
-    domain: picked.blogDns,
-    user: picked.blogUser,
-  });
+    await increaseQuota({
+      type: "subdomain",
+      domain: picked.blogDns,
+      user: picked.blogUser,
+    });
 
-  return result;
+    return { ...result, error: error1 };
+  } catch (err) {
+    const error2 = "Mail failed → " + err.message;
+    console.error("Mail failed → ", err.message);
+  }
+  return {
+    ok: false,
+    blogDns: picked.blogDns,
+    error: [error1, error2].join(" | "),
+  };
 }
 
 module.exports = { sendPost };

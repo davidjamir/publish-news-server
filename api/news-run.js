@@ -3,6 +3,7 @@ const { newsStore } = require("../src/store");
 const { newsQueue } = require("../src/queue");
 const { sendPost } = require("../src/mailer");
 const { isoTimeZone } = require("../helper/timeZone");
+const { sendNotify } = require("../src/notify");
 
 const MAX_PER_RUN = 2;
 
@@ -30,29 +31,58 @@ module.exports = async (req, res) => {
       const doc = await newsQueue.pop();
       if (!doc) break;
 
-      let status = "ok";
       let error = null;
 
-      try {
-        const newsItem = await newsStore.get(doc.itemId);
-        if (!newsItem) throw new Error("newsItem missing/expired");
-        if (!newsItem.featuredImage)
-          throw new Error("newsItem missing featured image");
+      const newsItem = await newsStore.get(doc.itemId);
+      if (!newsItem) throw new Error("newsItem missing/expired");
+      if (!newsItem.featuredImage)
+        throw new Error("newsItem missing featured image");
 
-        // Cần set toDns, nếu muốn gửi tới dns cụ thể, mode auto thì truyền toDns rỗng
+      let response = {
+        newsId: doc.itemId,
+        title: newsItem.title,
+        link: newsItem.link,
+        topic: newsItem?.topics[0] || "",
+        targets: newsItem.targets,
+      };
+      try {
         const r = await sendPost(newsItem);
         await newsStore.update(doc.itemId, { status: "sent", site: r.blogDns });
+
+        response = {
+          ...response,
+          status: r.ok === true ? "success" : "failed",
+          error: r.error,
+          site: r.blogDns,
+        };
       } catch (e) {
-        status = "failed";
-        error = String(e?.message || e);
         await newsStore.update(doc.itemId, {
           status: "failed",
           reason: error,
         });
+        response = {
+          ...response,
+          status: "failed",
+          error: String(e?.message || e),
+        };
       }
-
-      results.push({ newsId: doc.itemId, status, error });
+      results.push(response);
     }
+    for (const item of results) {
+      if (item.status !== "failed") {
+        continue;
+      }
+      await sendNotify({
+        type: "post-site",
+        topic: item.topic,
+        title: socialItem.title,
+        status: item.status,
+        text: toStr(item?.error || ""),
+        timeBangkok: isoTimeZone(new Date()),
+        timeNewyork: isoTimeZone(new Date(), "America/New_York"),
+      });
+    }
+
     console.log({ ok: true, processed: results.length, results });
     return res.json({ ok: true, processed: results.length, results });
   } catch (err) {
