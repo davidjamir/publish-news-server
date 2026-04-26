@@ -324,7 +324,11 @@ async function sendPost(item = {}) {
 
     return result;
   } catch (err) {
-    error1 = "[Blogger API failed] → fallback to mail: " + err.message;
+    error1 =
+      "[Blogger API failed] → fallback to mail: " +
+      err.message +
+      " " +
+      picked.blogUser;
     console.error("[Blogger API failed] → fallback to mail: ", err.message);
   }
 
