@@ -78,11 +78,13 @@ module.exports = async (req, res) => {
     }
 
     const page = await getPageName(payload.flags);
+    console.log("Page: ",page);
+    throw "Test case";
     const modeSocial = getModeSocial(payload.flags);
     const scheduleOn = getScheduleFlag(payload.flags);
 
     const pages = [];
-    if (modeSocial == "auto" && type === "social" && !page) {
+    if (modeSocial == "auto" && type === "social" && page) {
       pages.push({
         index: pages.length,
         requestChatId: payload.chatId,
