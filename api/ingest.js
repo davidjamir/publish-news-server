@@ -78,8 +78,6 @@ module.exports = async (req, res) => {
     }
 
     const page = await getPageName(payload.flags);
-    console.log("Page: ",page);
-    throw "Test case";
     const modeSocial = getModeSocial(payload.flags);
     const scheduleOn = getScheduleFlag(payload.flags);
 
