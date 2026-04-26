@@ -209,60 +209,48 @@ function buildMailFromItem(item) {
  */
 
 async function sendBloggerAPI({ subject, content, accessToken } = {}, picked) {
-  try {
-    const res = await fetch(
-      `https://www.googleapis.com/blogger/v3/blogs/${picked.blogId}/posts/`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          kind: "blogger#post",
-          title: subject,
-          content,
-        }),
+  const res = await fetch(
+    `https://www.googleapis.com/blogger/v3/blogs/${picked.blogId}/posts/`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify({
+        kind: "blogger#post",
+        title: subject,
+        content,
+      }),
+    },
+  );
 
-    let data;
-    const text = await res.text();
+  let data;
+  const text = await res.text();
 
-    try {
-      data = JSON.parse(text);
-    } catch {
-      data = text;
-    }
-
-    if (!res.ok) {
-      const message =
-        data?.error?.message ||
-        data?.message ||
-        text ||
-        "Unknown Blogger API error";
-
-      throw new Error(`[Blogger API ${res.status}] ${message}`);
-    }
-
-    return {
-      ok: true,
-      type: "api",
-      postId: data.id,
-      url: data.url,
-      blogDns: picked.blogDns || "",
-    };
-  } catch (err) {
-    // phân loại lỗi cho dễ debug / retry
-    const message = String(err?.message || err);
-
-    return {
-      ok: false,
-      type: "api",
-      error: message,
-      blogDns: picked.blogDns || "",
-    };
+  try {
+    data = JSON.parse(text);
+  } catch {
+    data = text;
   }
+
+  if (!res.ok) {
+    const message =
+      data?.error?.message ||
+      data?.message ||
+      text ||
+      "Unknown Blogger API error";
+
+    throw new Error(`[Blogger API ${res.status}] ${message}`);
+  }
+
+  return {
+    ok: true,
+    type: "api",
+    postId: data.id,
+    url: data.url,
+    blogDns: picked.blogDns || "",
+  };
 }
 
 async function sendMail({ subject, content } = {}, picked) {
@@ -311,8 +299,8 @@ async function sendPost(item = {}) {
   if (!picked) throw new Error("sendPost: not found target valid");
 
   const content = await injectAdsForBlog(html, picked.blogDns);
-  const error1 = null;
-  const error2 = null;
+  let error1 = null;
+  let error2 = null;
 
   // ===== TRY API FIRST =====
   try {
@@ -336,7 +324,7 @@ async function sendPost(item = {}) {
 
     return result;
   } catch (err) {
-    const error1 = "API failed → fallback to mail → " + err.message;
+    error1 = "API failed → fallback to mail → " + err.message;
     console.error("API failed → fallback to mail → ", err.message);
   }
 
@@ -354,7 +342,7 @@ async function sendPost(item = {}) {
 
     return { ...result, error: error1 };
   } catch (err) {
-    const error2 = "Mail failed → " + err.message;
+    error2 = "Mail failed → " + err.message;
     console.error("Mail failed → ", err.message);
   }
 

@@ -86,18 +86,20 @@ module.exports = async (req, res) => {
 
     // notify song song luôn
     await Promise.all(
-      results.map((item) =>
-        sendNotify({
-          type: "post-sites",
-          topic: item.topic,
-          title: item.title,
-          status: item.status,
-          targets: item.targets,
-          text: String(item.error || ""),
-          timeBangkok: isoTimeZone(new Date()),
-          timeNewyork: isoTimeZone(new Date(), "America/New_York"),
-        }),
-      ),
+      results
+        .filter((item) => item.status === "success")
+        .map((item) =>
+          sendNotify({
+            type: "post-sites",
+            topic: item.topic,
+            title: item.title,
+            status: item.status,
+            targets: item.targets,
+            text: String(item.error || ""),
+            timeBangkok: isoTimeZone(new Date()),
+            timeNewyork: isoTimeZone(new Date(), "America/New_York"),
+          }),
+        ),
     );
 
     console.log({ ok: true, processed: results.length, results });
