@@ -77,12 +77,12 @@ module.exports = async (req, res) => {
       throw new Error("Invalid type is 'default'. Must be 'social' or 'news'");
     }
 
-    const page = getPageName(payload.flags);
+    const page = await getPageName(payload.flags);
     const modeSocial = getModeSocial(payload.flags);
     const scheduleOn = getScheduleFlag(payload.flags);
 
     const pages = [];
-    if (modeSocial == "auto" && type === "social") {
+    if (modeSocial == "auto" && type === "social" && !page) {
       pages.push({
         index: pages.length,
         requestChatId: payload.chatId,
