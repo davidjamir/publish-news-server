@@ -64,8 +64,8 @@ const getPageName = async (flags = [], defaultPage = "") => {
   await updateOnePage(
     { _id: picked._id },
     {
-      $inc: { dailyPostCount: 1 },
-      $set: { dailyResetAt: today },
+      dailyPostCount: (picked.dailyPostCount || 0) + 1,
+      dailyResetAt: today,
     },
   );
 
