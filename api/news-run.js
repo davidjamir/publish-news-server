@@ -87,7 +87,7 @@ module.exports = async (req, res) => {
     // notify song song luôn
     await Promise.all(
       results
-        .filter((item) => item.error)
+        .filter((item) => String(item.error || "").trim())
         .map((item) =>
           sendNotify({
             type: "post-sites",
