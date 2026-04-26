@@ -1,3 +1,5 @@
+const { getManyPages, updateOnePage } = require("../database/pages");
+
 const getFlagValue = (flags = [], key, defaultValue = "") => {
   const k = String(key || "").trim();
   if (!k) throw new Error("key is required");
@@ -23,14 +25,51 @@ const getModeSocial = (flags = [], defaultMode = "manual") => {
   return v;
 };
 
-const getPageName = (flags = [], defaultPage = "") => {
-  const pages = flags
+function getTodayStart() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+const getPageName = async (flags = [], defaultPage = "") => {
+  const pageNames = flags
     .map((f) => f.startsWith("page:") && f.slice(5))
     .filter(Boolean);
 
-  return pages.length
-    ? pages[Math.floor(Math.random() * pages.length)]
-    : defaultPage;
+  if (!pageNames.length) return defaultPage;
+  const pages = await getManyPages({
+    name: { $in: pageNames },
+  });
+
+  if (!pages.length) return defaultPage;
+
+  const today = getTodayStart();
+  const normalized = pages.map((p) => {
+    const isNewDay = !p.dailyResetAt || Number(p.dailyResetAt) !== today;
+
+    return {
+      ...p,
+      dailyPostCount: isNewDay ? 0 : p.dailyPostCount || 0,
+      dailyResetAt: isNewDay ? today : p.dailyResetAt,
+    };
+  });
+  normalized.sort((a, b) => a.dailyPostCount - b.dailyPostCount);
+  if (!normalized.length) return defaultPage;
+
+  const min = normalized[0].dailyPostCount;
+  const candidates = normalized.filter((p) => p.dailyPostCount === min);
+  // random nhẹ trong nhóm min
+  const picked = candidates[Math.floor(Math.random() * candidates.length)];
+
+  await updateOnePage(
+    { _id: picked._id },
+    {
+      $inc: { dailyPostCount: 1 },
+      $set: { dailyResetAt: today },
+    },
+  );
+
+  return picked.name;
 };
 
 function getScheduleFlag(flags = [], defaultSchedule = "off") {
