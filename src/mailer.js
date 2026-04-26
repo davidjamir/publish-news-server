@@ -324,8 +324,8 @@ async function sendPost(item = {}) {
 
     return result;
   } catch (err) {
-    error1 = "API failed → fallback to mail → " + err.message;
-    console.error("API failed → fallback to mail → ", err.message);
+    error1 = "[Blogger API failed] → fallback to mail: " + err.message;
+    console.error("[Blogger API failed] → fallback to mail: ", err.message);
   }
 
   // ===== FALLBACK MAIL =====
@@ -342,7 +342,7 @@ async function sendPost(item = {}) {
 
     return { ...result, error: error1 };
   } catch (err) {
-    error2 = "Mail failed → " + err.message;
+    error2 = "[Mail failed]: " + err.message;
     console.error("Mail failed → ", err.message);
   }
 
