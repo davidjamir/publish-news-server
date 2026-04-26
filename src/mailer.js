@@ -209,36 +209,60 @@ function buildMailFromItem(item) {
  */
 
 async function sendBloggerAPI({ subject, content, accessToken } = {}, picked) {
-  const res = await fetch(
-    `https://www.googleapis.com/blogger/v3/blogs/${picked.blogId}/posts/`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
+  try {
+    const res = await fetch(
+      `https://www.googleapis.com/blogger/v3/blogs/${picked.blogId}/posts/`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          kind: "blogger#post",
+          title: subject,
+          content,
+        }),
       },
-      body: JSON.stringify({
-        kind: "blogger#post",
-        title: subject,
-        content,
-      }),
-    },
-  );
+    );
 
-  if (!res.ok) {
+    let data;
     const text = await res.text();
-    throw new Error("Blogger API error: " + text);
+
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = text;
+    }
+
+    if (!res.ok) {
+      const message =
+        data?.error?.message ||
+        data?.message ||
+        text ||
+        "Unknown Blogger API error";
+
+      throw new Error(`[Blogger API ${res.status}] ${message}`);
+    }
+
+    return {
+      ok: true,
+      type: "api",
+      postId: data.id,
+      url: data.url,
+      blogDns: picked.blogDns || "",
+    };
+  } catch (err) {
+    // phân loại lỗi cho dễ debug / retry
+    const message = String(err?.message || err);
+
+    return {
+      ok: false,
+      type: "api",
+      error: message,
+      blogDns: picked.blogDns || "",
+    };
   }
-
-  const data = await res.json();
-
-  return {
-    ok: true,
-    type: "api",
-    postId: data.id,
-    url: data.url,
-    blogDns: picked.blogDns || "",
-  };
 }
 
 async function sendMail({ subject, content } = {}, picked) {
