@@ -357,10 +357,13 @@ async function sendPost(item = {}) {
     const error2 = "Mail failed → " + err.message;
     console.error("Mail failed → ", err.message);
   }
+
+  const errorMessage = [error1, error2].filter(Boolean).join(" | ");
+
   return {
     ok: false,
     blogDns: picked.blogDns,
-    error: [error1, error2].join(" | "),
+    error: errorMessage || "Unknown error",
   };
 }
 
