@@ -40,7 +40,7 @@ module.exports = async (req, res) => {
 
       try {
         if (!socialItem) throw new Error("socialItem missing/expired");
-        if (!socialItem.featuredImage)
+        if (socialItem.pipeline === "traffic" && !socialItem.featuredImage)
           throw new Error("socialItem missing featured image");
         if (!doc.itemId || !doc.page)
           throw new Error("invalid queue member (expected itemId|page)");

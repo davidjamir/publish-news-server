@@ -139,7 +139,7 @@ module.exports = async (req, res) => {
         chatId,
         page,
         topic: _topics?.[0] || null,
-        title: item.snippet,
+        title: item.snippet || item.title,
         link: "",
         timeBangkok: isoTimeZone(new Date(scheduleAt)),
         timeNewyork: isoTimeZone(new Date(scheduleAt), "America/New_York"),
