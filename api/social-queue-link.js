@@ -79,7 +79,7 @@ module.exports = async (req, res) => {
     if (hasMedia) {
       const hash = "media_viral_post_" + page + "_" + Date.now();
       const item = {
-        snippet: text || "",
+        snippet: text || defaultTitle || "",
         pipeline,
         status: "stored",
         type,
