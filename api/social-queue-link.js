@@ -57,7 +57,7 @@ module.exports = async (req, res) => {
   const _tags = Array.isArray(tags) ? tags : [];
   const _topics = Array.isArray(topics) ? topics : [];
   const type = getType(_flags);
-  const page = getPageName(_flags);
+  const { page, defaultTitle } = await getPageName(_flags);
   const modeSocial = getModeSocial(_flags);
   const scheduleOn = getScheduleFlag(_flags);
   const link = extractLink(text);
@@ -87,7 +87,7 @@ module.exports = async (req, res) => {
         topics: [],
         link: link || hash,
         guid: link || hash,
-        title: text || hash,
+        title: text || defaultTitle || hash,
         contentType,
         images,
         videos,

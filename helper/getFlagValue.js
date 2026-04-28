@@ -31,7 +31,7 @@ function getTodayStart() {
   return d.getTime();
 }
 
-const getPageName = async (flags = [], defaultPage = "") => {
+const getPageName = async (flags = [], defaultPage = "", defaultTitle = "") => {
   const pageNames = flags
     .map((f) => f.startsWith("page:") && f.slice(5))
     .filter(Boolean);
@@ -41,7 +41,7 @@ const getPageName = async (flags = [], defaultPage = "") => {
     name: { $in: pageNames },
   });
 
-  if (!pages.length) return defaultPage;
+  if (!pages.length) return { page: defaultPage, defaultTitle };
 
   const today = getTodayStart();
   const normalized = pages.map((p) => {
@@ -54,7 +54,7 @@ const getPageName = async (flags = [], defaultPage = "") => {
     };
   });
   normalized.sort((a, b) => a.dailyPostCount - b.dailyPostCount);
-  if (!normalized.length) return defaultPage;
+  if (!normalized.length) return { page: defaultPage, defaultTitle };
 
   const min = normalized[0].dailyPostCount;
   const candidates = normalized.filter((p) => p.dailyPostCount === min);
@@ -69,7 +69,10 @@ const getPageName = async (flags = [], defaultPage = "") => {
     },
   );
 
-  return picked.name;
+  return {
+    page: picked.name,
+    defaultTitle: picked?.defaultTitle || defaultTitle,
+  };
 };
 
 function getScheduleFlag(flags = [], defaultSchedule = "off") {

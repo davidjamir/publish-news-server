@@ -77,7 +77,7 @@ module.exports = async (req, res) => {
       throw new Error("Invalid type is 'default'. Must be 'social' or 'news'");
     }
 
-    const page = await getPageName(payload.flags);
+    const { page } = await getPageName(payload.flags);
     const modeSocial = getModeSocial(payload.flags);
     const scheduleOn = getScheduleFlag(payload.flags);
 
