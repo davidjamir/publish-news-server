@@ -36,7 +36,7 @@ module.exports = async (req, res) => {
       const socialItem = await socialStore.get(doc.itemId);
       let status = "ok";
       let error = null;
-      let response = {};
+      let response = { results: [] };
 
       try {
         if (!socialItem) throw new Error("socialItem missing/expired");
