@@ -51,6 +51,7 @@ module.exports = async (req, res) => {
         error = String(e?.message || e);
       }
 
+      console.log("Result: ", response.results);
       for (const item of response.results) {
         await sendNotify({
           type: "post-social",
