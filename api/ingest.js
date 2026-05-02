@@ -79,7 +79,7 @@ module.exports = async (req, res) => {
       throw new Error("Invalid type is 'default'. Must be 'social' or 'news'");
     }
 
-    const { page } = await getPageName(payload.flags);
+    const { page, targetPages } = await getPageName(payload.flags);
     const modeSocial = getModeSocial(payload.flags);
     const scheduleOn = getScheduleFlag(payload.flags);
 
@@ -117,6 +117,7 @@ module.exports = async (req, res) => {
           targets: payload.targets,
           topics: payload.topics,
           pages,
+          targetPages,
           itemId,
           batchId: payload.batchId,
         };

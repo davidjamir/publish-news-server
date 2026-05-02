@@ -72,6 +72,7 @@ const getPageName = async (flags = [], defaultPage = "", defaultTitle = "") => {
   return {
     page: picked.name,
     defaultTitle: picked?.defaultTitle || defaultTitle,
+    targetPages: pageNames,
   };
 };
 
