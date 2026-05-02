@@ -64,6 +64,8 @@ module.exports = async (req, res) => {
 
     const payload = {
       chatId: String(body.chatId ?? ""),
+      chatName: String(body.chatName ?? ""),
+      chatType: String(body.chatType ?? ""),
       api: body.api ?? {},
       topics: Array.isArray(body.topics) ? body.topics : [],
       flags: Array.isArray(body.flags) ? body.flags : [],
@@ -86,6 +88,8 @@ module.exports = async (req, res) => {
       pages.push({
         index: pages.length,
         requestChatId: payload.chatId,
+        chatName: payload.chatName,
+        chatType: payload.chatType,
         page,
         topic: payload.topics?.[0] || null,
         tags: payload.tags,

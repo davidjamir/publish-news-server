@@ -51,8 +51,18 @@ module.exports = async (req, res) => {
 
   let title = "";
 
-  const { chatId, flags, tags, text, topics, images, videos, contentType } =
-    body;
+  const {
+    chatId,
+    chatName,
+    chatType,
+    flags,
+    tags,
+    text,
+    topics,
+    images,
+    videos,
+    contentType,
+  } = body;
   const _flags = Array.isArray(flags) ? flags : [];
   const _tags = Array.isArray(tags) ? tags : [];
   const _topics = Array.isArray(topics) ? topics : [];
@@ -99,6 +109,8 @@ module.exports = async (req, res) => {
           {
             index: 0,
             requestChatId: chatId,
+            chatName,
+            chatType,
             page,
             topic: _topics?.[0] || null,
             tags: _tags,
@@ -171,6 +183,8 @@ module.exports = async (req, res) => {
         {
           index: pages.length,
           requestChatId: chatId,
+          chatName,
+          chatType,
           page,
           topic: _topics?.[0] || null,
           tags: _tags,
