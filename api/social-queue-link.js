@@ -62,6 +62,7 @@ module.exports = async (req, res) => {
     images,
     videos,
     contentType,
+    link,
   } = body;
   const _flags = Array.isArray(flags) ? flags : [];
   const _tags = Array.isArray(tags) ? tags : [];
@@ -70,7 +71,7 @@ module.exports = async (req, res) => {
   const { page, defaultTitle, targetPages } = await getPageName(_flags);
   const modeSocial = getModeSocial(_flags);
   const scheduleOn = getScheduleFlag(_flags);
-  const link = extractLink(text);
+  const _link = extractLink(text) ?? link;
   const hasMedia = (images?.length || videos?.length) > 0;
   const pipeline = hasMedia ? "viral" : "traffic";
 
@@ -95,8 +96,8 @@ module.exports = async (req, res) => {
         type,
         targets: [],
         topics: [],
-        link: link || hash,
-        guid: link || hash,
+        link: _link || hash,
+        guid: _link || hash,
         title: text || defaultTitle || hash,
         contentType,
         images,
@@ -162,8 +163,8 @@ module.exports = async (req, res) => {
     // -----------------------------
     // PRIORITY 2: LINK SYSTEM (OLD FLOW)
     // -----------------------------
-    if (link) {
-      const itemLink = await linkStore.get(link);
+    if (_link) {
+      const itemLink = await linkStore.get(_link);
       if (!itemLink) throw new Error("Link not found in database!");
       const item = await socialStore.get(itemLink.itemId);
       if (!item)
