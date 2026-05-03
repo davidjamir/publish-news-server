@@ -110,6 +110,9 @@ module.exports = async (req, res) => {
         const snippet = cutPointerPrefixAnywhere(it.snippet);
         const item = {
           ...it,
+          chatId: payload.chatId,
+          chatName: payload.chatName,
+          chatType: payload.chatType,
           snippet,
           pipeline: "traffic",
           status: "stored",
