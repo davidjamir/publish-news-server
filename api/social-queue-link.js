@@ -64,8 +64,7 @@ module.exports = async (req, res) => {
     contentType,
     link,
   } = body;
-  console.log("Body: ", body);
-
+  
   const _flags = Array.isArray(flags) ? flags : [];
   const _tags = Array.isArray(tags) ? tags : [];
   const _topics = Array.isArray(topics) ? topics : [];
@@ -73,7 +72,7 @@ module.exports = async (req, res) => {
   const { page, defaultTitle, targetPages } = await getPageName(_flags);
   const modeSocial = getModeSocial(_flags);
   const scheduleOn = getScheduleFlag(_flags);
-  const _link = extractLink(text) ?? link;
+  const _link = link ?? extractLink(text);
   const hasMedia = (images?.length || videos?.length) > 0;
   const pipeline = hasMedia ? "viral" : "traffic";
 
