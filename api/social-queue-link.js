@@ -64,6 +64,8 @@ module.exports = async (req, res) => {
     contentType,
     link,
   } = body;
+  console.log("Body: ", body);
+
   const _flags = Array.isArray(flags) ? flags : [];
   const _tags = Array.isArray(tags) ? tags : [];
   const _topics = Array.isArray(topics) ? topics : [];
@@ -74,8 +76,6 @@ module.exports = async (req, res) => {
   const _link = extractLink(text) ?? link;
   const hasMedia = (images?.length || videos?.length) > 0;
   const pipeline = hasMedia ? "viral" : "traffic";
-
-  console.log("Link: ", _link);
 
   try {
     if (!chatId) throw new Error("Not found chatId in request!");
