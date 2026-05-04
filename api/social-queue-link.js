@@ -75,6 +75,8 @@ module.exports = async (req, res) => {
   const hasMedia = (images?.length || videos?.length) > 0;
   const pipeline = hasMedia ? "viral" : "traffic";
 
+  console.log("Link: ", _link);
+
   try {
     if (!chatId) throw new Error("Not found chatId in request!");
     if (!page) throw new Error("Missing page flag (expected page:xxx)");
