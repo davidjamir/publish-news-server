@@ -2,7 +2,7 @@
 const { MongoClient } = require("mongodb");
 const { attachDatabasePool } = require("@vercel/functions");
 
-const Day_TTL = 10; //Day
+const Day_TTL = 20; //Day
 
 const options = {
   appName: "devrel.vercel.integration", // Tên ứng dụng của bạn
