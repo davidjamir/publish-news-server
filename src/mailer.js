@@ -208,7 +208,10 @@ function buildMailFromItem(item) {
  * - Nếu không hợp lệ, dùng fallback SendMail.
  */
 
-async function sendBloggerAPI({ subject, content, accessToken } = {}, picked) {
+async function sendBloggerAPI(
+  { subject, content, labels, accessToken } = {},
+  picked,
+) {
   const res = await fetch(
     `https://www.googleapis.com/blogger/v3/blogs/${picked.blogId}/posts/`,
     {
@@ -221,6 +224,7 @@ async function sendBloggerAPI({ subject, content, accessToken } = {}, picked) {
         kind: "blogger#post",
         title: subject,
         content,
+        labels,
       }),
     },
   );
@@ -282,6 +286,7 @@ async function sendPost(item = {}) {
   const { subject, html } = buildMailFromItem(item);
   if (html.length < 500)
     throw new Error("Length content html not valid for post to website");
+  const labels = item.categories ?? [];
 
   const requestedDns = normalizeTargetDnsList(item.targets);
 
@@ -311,7 +316,7 @@ async function sendPost(item = {}) {
       throw new Error("sentAPI: account's token not valid");
 
     const result = await sendBloggerAPI(
-      { subject, content, accessToken: account.accessToken },
+      { subject, content, labels, accessToken: account.accessToken },
       picked,
     );
     console.log("API successful → email: ", picked.blogUser);
