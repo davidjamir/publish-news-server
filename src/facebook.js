@@ -666,6 +666,7 @@ async function handleTrafficPost({ payload, published }) {
       },
     ];
   } catch (err) {
+    console.log("Error with payload: ", payload);
     return [
       {
         type,
@@ -787,6 +788,7 @@ async function sendFaceBookPost(item, opts = {}) {
           });
         }
       } catch (e) {
+        console.log("Error with by comment in Publish item: ", item?.title);
         commentRes = { ok: false, error: String(e?.message || e) };
       }
 
