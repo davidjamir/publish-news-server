@@ -281,6 +281,44 @@ async function sendMail({ subject, content } = {}, picked) {
   };
 }
 
+async function sendAdapter(item) {
+  const res = await fetch(process.env.ADAPTER_ENDPOINT_API, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      item,
+    }),
+  });
+
+  let data;
+  const text = await res.text();
+
+  try {
+    data = JSON.parse(text);
+  } catch {
+    data = text;
+  }
+
+  if (!res.ok) {
+    const message =
+      data?.error?.message ||
+      data?.message ||
+      text ||
+      "Unknown Blogger API error";
+
+    throw new Error(`[Adapter API ${res.status}] ${message}`);
+  }
+
+  return {
+    ok: true,
+    type: "adapter",
+    blogDns: picked.blogDns || "",
+  };
+}
+
 async function sendPost(item = {}) {
   if (!item) throw new Error("sendMail: item is required");
   const { subject, html } = buildMailFromItem(item);
@@ -306,56 +344,75 @@ async function sendPost(item = {}) {
   const content = await injectAdsForBlog(html, picked.blogDns);
   let error1 = null;
   let error2 = null;
+  let error3 = null;
 
-  // ===== TRY API FIRST =====
-  try {
-    if (!picked?.blogId)
-      throw new Error("sendAPI: account blog's ID not valid");
-    const account = await getOneAccountAPI({ email: picked.blogUser });
-    if (!account?.accessToken)
-      throw new Error("sentAPI: account's token not valid");
+  if (picked?.platform === "website") {
+    try {
+      const result = await sendAdapter(item);
+      console.log("API successful → email: ", picked.blogUser);
 
-    const result = await sendBloggerAPI(
-      { subject, content, labels, accessToken: account.accessToken },
-      picked,
-    );
-    console.log("API successful → email: ", picked.blogUser);
+      await increaseQuota({
+        type: "subdomain",
+        domain: picked.blogDns,
+        user: picked.blogUser,
+      });
 
-    await increaseQuota({
-      type: "subdomain",
-      domain: picked.blogDns,
-      user: picked.blogUser,
-    });
+      return result;
+    } catch (err) {
+      error1 = "[Adapter failed]: " + err.message;
+      console.error("Adapter failed → ", err.message);
+    }
+  } else {
+    // ===== TRY API FIRST =====
+    try {
+      if (!picked?.blogId)
+        throw new Error("sendAPI: account blog's ID not valid");
+      const account = await getOneAccountAPI({ email: picked.blogUser });
+      if (!account?.accessToken)
+        throw new Error("sentAPI: account's token not valid");
 
-    return result;
-  } catch (err) {
-    error1 =
-      "[Blogger API failed] → fallback to mail: " +
-      err.message +
-      " " +
-      picked.blogUser;
-    console.error("[Blogger API failed] → fallback to mail: ", err.message);
+      const result = await sendBloggerAPI(
+        { subject, content, labels, accessToken: account.accessToken },
+        picked,
+      );
+      console.log("API successful → email: ", picked.blogUser);
+
+      await increaseQuota({
+        type: "subdomain",
+        domain: picked.blogDns,
+        user: picked.blogUser,
+      });
+
+      return result;
+    } catch (err) {
+      error2 =
+        "[Blogger API failed] → fallback to mail: " +
+        err.message +
+        " " +
+        picked.blogUser;
+      console.error("[Blogger API failed] → fallback to mail: ", err.message);
+    }
+
+    // ===== FALLBACK MAIL =====
+    try {
+      if (!picked?.blogEmail)
+        throw new Error("sendMail: target's email not valid");
+      const result = await sendMail({ subject, content }, picked);
+
+      await increaseQuota({
+        type: "subdomain",
+        domain: picked.blogDns,
+        user: picked.blogUser,
+      });
+
+      return { ...result, error: error1 };
+    } catch (err) {
+      error3 = "[Mail failed]: " + err.message;
+      console.error("Mail failed → ", err.message);
+    }
   }
 
-  // ===== FALLBACK MAIL =====
-  try {
-    if (!picked?.blogEmail)
-      throw new Error("sendMail: target's email not valid");
-    const result = await sendMail({ subject, content }, picked);
-
-    await increaseQuota({
-      type: "subdomain",
-      domain: picked.blogDns,
-      user: picked.blogUser,
-    });
-
-    return { ...result, error: error1 };
-  } catch (err) {
-    error2 = "[Mail failed]: " + err.message;
-    console.error("Mail failed → ", err.message);
-  }
-
-  const errorMessage = [error1, error2].filter(Boolean).join(" | ");
+  const errorMessage = [error1, error2, error3].filter(Boolean).join(" | ");
 
   return {
     ok: false,
