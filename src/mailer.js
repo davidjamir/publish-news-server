@@ -134,6 +134,7 @@ async function pickBlogTargetWithQuota(targets = []) {
     blogUser: toStr(target.blogUser),
     blogPassword: toStr(target.blogPassword),
     blogId: toStr(target.blogId),
+    platform: toStr(target.platform),
   };
 }
 
