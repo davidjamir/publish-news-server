@@ -282,7 +282,7 @@ async function sendMail({ subject, content } = {}, picked) {
   };
 }
 
-async function sendAdapter(item) {
+async function sendAdapter(item = {}, picked) {
   const res = await fetch(process.env.ADAPTER_ENDPOINT_API, {
     method: "POST",
     headers: {
@@ -349,7 +349,7 @@ async function sendPost(item = {}) {
 
   if (picked?.platform === "website") {
     try {
-      const result = await sendAdapter(item);
+      const result = await sendAdapter(item, picked);
       console.log("API successful → email: ", picked.blogUser);
 
       await increaseQuota({
