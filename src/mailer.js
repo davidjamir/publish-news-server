@@ -286,7 +286,7 @@ async function sendAdapter(item) {
   const res = await fetch(process.env.ADAPTER_ENDPOINT_API, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${accessToken}`,
+      Authorization: `Bearer ${process.env.PUBLISH_WEBHOOK_SECRET}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
