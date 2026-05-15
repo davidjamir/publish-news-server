@@ -200,9 +200,15 @@ function buildMailFromItem(item) {
   }
   if (!html) throw new Error("sendMail: item has no html/snippet content");
 
-  return { subject: title, html };
+  return { subject: title, html, snippet: crawlSnippet || snippet || "" };
 }
 
+function extractOriginFromSubdomain(subdomain) {
+  const parts = subdomain.split(".");
+  if (parts.length <= 2) return subdomain;
+
+  return parts.slice(-2).join(".");
+}
 /**
  * sendPost:
  * - Nếu tồn tại đủ các điều kiện API Blogger thì gửi thẳng.
@@ -282,7 +288,10 @@ async function sendMail({ subject, content } = {}, picked) {
   };
 }
 
-async function sendAdapter(item = {}, picked) {
+async function sendAdapter(
+  { featureImage, subject, content, snippet, categories } = {},
+  picked,
+) {
   const res = await fetch(process.env.ADAPTER_ENDPOINT_API, {
     method: "POST",
     headers: {
@@ -290,7 +299,15 @@ async function sendAdapter(item = {}, picked) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      item,
+      item: {
+        title: subject,
+        featureImage,
+        content,
+        snippet,
+        categories,
+        domain: picked.blogDns,
+        origin: extractOriginFromSubdomain(picked.blogDns),
+      },
     }),
   });
 
@@ -322,7 +339,7 @@ async function sendAdapter(item = {}, picked) {
 
 async function sendPost(item = {}) {
   if (!item) throw new Error("sendMail: item is required");
-  const { subject, html } = buildMailFromItem(item);
+  const { subject, html, snippet } = buildMailFromItem(item);
   if (html.length < 500)
     throw new Error("Length content html not valid for post to website");
   const labels = item.categories ?? [];
@@ -349,7 +366,16 @@ async function sendPost(item = {}) {
 
   if (picked?.platform === "website") {
     try {
-      const result = await sendAdapter(item, picked);
+      const result = await sendAdapter(
+        {
+          featureImage: item.featuredImage,
+          subject,
+          content,
+          snippet,
+          categories: labels,
+        },
+        picked,
+      );
       console.log("API successful → email: ", picked.blogUser);
 
       await increaseQuota({
