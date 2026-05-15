@@ -367,12 +367,12 @@ async function sendPost(item = {}) {
         },
         picked,
       );
-      console.log("API successful → email: ", picked.blogUser);
+      console.log("Adapter successful → site: ", picked.blogDns);
 
       await increaseQuota({
         type: "subdomain",
         domain: picked.blogDns,
-        user: picked.blogUser,
+        user: "adapter@gmail.com",
       });
 
       return result;
