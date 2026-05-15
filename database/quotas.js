@@ -121,5 +121,4 @@ async function increaseQuota({
 module.exports = {
   getQuotasToday,
   increaseQuota,
-  extractOriginFromSubdomain,
 };

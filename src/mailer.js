@@ -4,11 +4,7 @@ const { getManyBlogs } = require("../database/blogs");
 const { getOneAccountAPI } = require("../database/account-api");
 const { injectAdsForBlog } = require("../src/ads");
 const { extractOriginFromSubdomain } = require("../helper/extractOrigin");
-const {
-  getQuotasToday,
-  increaseQuota,
-  extractOriginFromSubdomain,
-} = require("../database/quotas");
+const { getQuotasToday, increaseQuota } = require("../database/quotas");
 
 function normDns(x) {
   return toStr(x).toLowerCase().replace(/\s+/g, "");
