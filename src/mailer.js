@@ -3,6 +3,7 @@ const { toStr } = require("../helper/toString");
 const { getManyBlogs } = require("../database/blogs");
 const { getOneAccountAPI } = require("../database/account-api");
 const { injectAdsForBlog } = require("../src/ads");
+const { extractOriginFromSubdomain } = require("../helper/extractOrigin");
 const {
   getQuotasToday,
   increaseQuota,
@@ -203,12 +204,6 @@ function buildMailFromItem(item) {
   return { subject: title, html, snippet: crawlSnippet || snippet || "" };
 }
 
-function extractOriginFromSubdomain(subdomain) {
-  const parts = subdomain.split(".");
-  if (parts.length <= 2) return subdomain;
-
-  return parts.slice(-2).join(".");
-}
 /**
  * sendPost:
  * - Nếu tồn tại đủ các điều kiện API Blogger thì gửi thẳng.

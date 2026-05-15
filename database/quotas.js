@@ -1,5 +1,6 @@
 const { getDb } = require("./mongodb");
 const { getDayKeyAndTtlSec } = require("../helper/timeZone");
+const { extractOriginFromSubdomain } = require("../helper/extractOrigin");
 
 const ORIGIN_LIMIT_DEFAULT = 300;
 const SUBDOMAIN_LIMIT_DEFAULT = 40;
@@ -12,13 +13,6 @@ function getDateKey() {
 
 function buildQuotaId(type, key, date) {
   return `${type}:${key}:${date}`;
-}
-
-function extractOriginFromSubdomain(subdomain) {
-  const parts = subdomain.split(".");
-  if (parts.length <= 2) return subdomain;
-
-  return parts.slice(-2).join(".");
 }
 
 async function getCollection() {
