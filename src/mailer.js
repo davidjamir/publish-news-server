@@ -280,7 +280,7 @@ async function sendMail({ subject, content } = {}, picked) {
 }
 
 async function sendAdapter(
-  { featureImage, subject, content, snippet, categories } = {},
+  { featuredImage, subject, content, snippet, categories } = {},
   picked,
 ) {
   const res = await fetch(process.env.ADAPTER_ENDPOINT_API, {
@@ -292,7 +292,7 @@ async function sendAdapter(
     body: JSON.stringify({
       item: {
         title: subject,
-        featureImage,
+        featuredImage,
         content,
         snippet,
         categories,
@@ -359,7 +359,7 @@ async function sendPost(item = {}) {
     try {
       const result = await sendAdapter(
         {
-          featureImage: item.featuredImage,
+          featuredImage: item.featuredImage,
           subject,
           content,
           snippet,
