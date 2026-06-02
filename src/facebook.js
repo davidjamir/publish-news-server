@@ -393,7 +393,10 @@ function buildFaceBookPost(item = {}, tags = []) {
   const cleanTags = normalizeTags(tags);
   const hashtags = pickRandomTagsWithVariance(cleanTags) || [];
 
-  const main = clampText(crawlSnippet || `${title} ${snippet || ""}`, 600);
+  const main =
+    crawlSnippet.length > 100
+      ? clampText(crawlSnippet, 500)
+      : clampText(`${title} ${snippet || ""}`, 500);
   const mainText = removeLinks(fixDotSpacing(main));
 
   const modeRoll = Math.random();
