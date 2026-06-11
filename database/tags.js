@@ -19,6 +19,7 @@ async function insertManyTags(payload) {
         },
         $setOnInsert: {
           createdAt: new Date(),
+          lastKeywordUpdate: Date.now(),
         },
       };
 
@@ -40,11 +41,15 @@ async function insertManyTags(payload) {
 }
 
 // Lấy nhiều tài liệu theo điều kiện
-async function getManyTags(filter) {
+async function getManyTags(filter, limit) {
   try {
     const col = await getCollection();
-    const blogs = await col.find(filter).sort({ createdAt: 1 }).toArray();
-    return blogs;
+    const tags = await col
+      .find(filter)
+      .sort({ createdAt: 1 })
+      .limit(limit)
+      .toArray();
+    return tags;
   } catch (error) {
     console.error("Error fetching multiple documents:", error);
     throw error;
