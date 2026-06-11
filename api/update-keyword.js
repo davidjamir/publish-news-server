@@ -43,7 +43,7 @@ module.exports = async (req, res) => {
   try {
     const tags = await getManyTags(
       {
-        lastKeywordUpdate: { $lt: Date.now() - 1000 * 60 * 60 * 12 },
+        lastKeywordUpdate: { $lt: Date.now() - 1000 * 60 * 10 },
       },
       MAX_PER_RUN,
     );
