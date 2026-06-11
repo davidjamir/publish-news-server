@@ -3,7 +3,9 @@ const { isAuthorized, isWrapLink } = require("../helper/isAuthorized");
 const { buildHashBatchId, buildHashItemId } = require("../src/crypto");
 const { toStr } = require("../helper/toString");
 const { getOneBlog } = require("../database/blogs");
+const { insertManyTags } = require("../database/tags");
 const { crawlQueue } = require("../src/queue");
+
 const {
   batchStore,
   newsStore,
@@ -119,6 +121,7 @@ module.exports = async (req, res) => {
           type: payload.type,
           targets: payload.targets,
           topics: payload.topics,
+          tags: payload.tags,
           pages,
           targetPages,
           itemId,
@@ -135,6 +138,10 @@ module.exports = async (req, res) => {
       throw new Error("Invalid targets list of batch. Must be has variables");
     }
     await batchStore.push({ ...payload, status: "stored" });
+
+    if (payload.tags.length > 0) {
+      await insertManyTags(payload.tags);
+    }
 
     for (const item of payload.items) {
       if (item.type === "social") {
