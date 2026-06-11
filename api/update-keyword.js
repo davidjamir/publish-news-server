@@ -22,7 +22,10 @@ const updateKeyword = async (tag) => {
 
   const suggestions = data?.[1] || [];
 
-  await updateOneTag({ name: tag.name }, { keywords: suggestions });
+  await updateOneTag(
+    { name: tag.name },
+    { keywords: suggestions, lastKeywordUpdate: Date.now() },
+  );
 
   return { name: tag.name, suggestions };
 };
