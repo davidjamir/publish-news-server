@@ -1,7 +1,7 @@
 const { isAuthorized } = require("../helper/isAuthorized");
 const { getManyTags, updateOneTag } = require("../database/tags");
 
-const MAX_PER_RUN = 10;
+const MAX_PER_RUN = 20;
 
 const updateKeyword = async (tag) => {
   const url =
@@ -43,7 +43,7 @@ module.exports = async (req, res) => {
   try {
     const tags = await getManyTags(
       {
-        lastKeywordUpdate: { $lt: Date.now() - 1000 * 60 * 10 },
+        lastKeywordUpdate: { $lt: Date.now() - 1000 * 60 * 60 * 8 },
       },
       MAX_PER_RUN,
     );
