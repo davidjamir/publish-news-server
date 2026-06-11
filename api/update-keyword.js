@@ -26,7 +26,7 @@ const updateKeyword = async (tag) => {
     { keywords: suggestions, lastKeywordUpdate: Date.now() },
   );
 
-  return { name: tag.name, suggestions };
+  return { name: tag.name };
 };
 
 module.exports = async (req, res) => {
