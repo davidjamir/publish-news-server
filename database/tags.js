@@ -20,6 +20,7 @@ async function insertManyTags(payload) {
         $setOnInsert: {
           createdAt: new Date(),
           lastKeywordUpdate: Date.now(),
+          keywords: [],
         },
       };
 
