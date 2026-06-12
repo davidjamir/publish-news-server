@@ -336,7 +336,7 @@ async function sendPost(item = {}) {
   if (html.length < 500)
     throw new Error("Length content html not valid for post to website");
   const labels = item.categories ?? [];
-  const tags = getKeywords(item.tags);
+  const tags = await getKeywords(item.tags);
 
   const requestedDns = normalizeTargetDnsList(item.targets);
 

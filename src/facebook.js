@@ -2,6 +2,7 @@ const { toStr } = require("../helper/toString");
 const { socialStore } = require("./store");
 const { isoTimeZone } = require("../helper/timeZone");
 const { getOnePage, updateOnePage } = require("../database/pages");
+const { getKeywords } = require("../database/tags");
 
 const FB_GRAPH_BASE = `https://graph.facebook.com/v25.0`;
 
@@ -734,10 +735,12 @@ async function sendFaceBookPost(item, opts = {}) {
       if (!target) {
         throw new Error(`FACEBOOK_TARGET_NOT_FOUND: ${page}`);
       }
+
+      const keywords = await getKeywords(tags)
       const post =
         item?.pipeline === "viral"
-          ? buildViralMessage(item, tags)
-          : buildFaceBookPost(item, tags);
+          ? buildViralMessage(item, keywords)
+          : buildFaceBookPost(item, keywords);
       const payload = { ...target, ...post };
 
       let created = null;
