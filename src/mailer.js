@@ -5,6 +5,7 @@ const { getOneAccountAPI } = require("../database/account-api");
 const { injectAdsForBlog } = require("../src/ads");
 const { extractOriginFromSubdomain } = require("../helper/extractOrigin");
 const { getQuotasToday, increaseQuota } = require("../database/quotas");
+const { getKeywords } = require("../database/tags");
 
 function normDns(x) {
   return toStr(x).toLowerCase().replace(/\s+/g, "");
@@ -280,7 +281,7 @@ async function sendMail({ subject, content } = {}, picked) {
 }
 
 async function sendAdapter(
-  { featuredImage, subject, content, snippet, categories } = {},
+  { featuredImage, subject, content, snippet, categories, tags } = {},
   picked,
 ) {
   const res = await fetch(process.env.ADAPTER_ENDPOINT_API, {
@@ -296,6 +297,7 @@ async function sendAdapter(
         content,
         snippet,
         categories,
+        tags,
         domain: picked.blogDns,
         origin: extractOriginFromSubdomain(picked.blogDns),
       },
@@ -334,6 +336,7 @@ async function sendPost(item = {}) {
   if (html.length < 500)
     throw new Error("Length content html not valid for post to website");
   const labels = item.categories ?? [];
+  const tags = getKeywords(item.tags);
 
   const requestedDns = normalizeTargetDnsList(item.targets);
 
@@ -363,6 +366,7 @@ async function sendPost(item = {}) {
           subject,
           content,
           snippet,
+          tags,
           categories: labels,
         },
         picked,

@@ -68,8 +68,32 @@ async function updateOneTag(filter, updateData) {
   }
 }
 
+async function getKeywords(entity) {
+  if (!entity?.length) {
+    return [];
+  }
+
+  const entities = await getManyTags(
+    {
+      name: { $in: entity },
+    },
+    200,
+  );
+
+  const keywords = new Set();
+
+  for (const item of entities) {
+    for (const keyword of item.keywords || []) {
+      keywords.add(keyword);
+    }
+  }
+
+  return [...keywords];
+}
+
 module.exports = {
   insertManyTags,
   getManyTags,
   updateOneTag,
+  getKeywords,
 };
