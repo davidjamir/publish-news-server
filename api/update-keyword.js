@@ -26,6 +26,7 @@ const updateKeyword = async (tag) => {
     { keywords: suggestions, lastKeywordUpdate: Date.now() },
   );
 
+  console.log("Update keywords of tag: ", tag.name);
   return { name: tag.name };
 };
 
