@@ -201,6 +201,19 @@ function buildMailFromItem(item) {
   return { subject: title, html, snippet: crawlSnippet || snippet || "" };
 }
 
+function pickRandomTags(arr = [], max = 10) {
+  if (!Array.isArray(arr)) return [];
+
+  const cloned = [...arr]; // không mutate mảng gốc
+
+  for (let i = cloned.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [cloned[i], cloned[j]] = [cloned[j], cloned[i]];
+  }
+
+  return cloned.slice(0, max);
+}
+
 /**
  * sendPost:
  * - Nếu tồn tại đủ các điều kiện API Blogger thì gửi thẳng.
@@ -336,7 +349,7 @@ async function sendPost(item = {}) {
   if (html.length < 500)
     throw new Error("Length content html not valid for post to website");
   const labels = item.categories ?? [];
-  const tags = await getKeywords(item.tags);
+  const tags = pickRandomTags(await getKeywords(item.tags));
 
   const requestedDns = normalizeTargetDnsList(item.targets);
 
