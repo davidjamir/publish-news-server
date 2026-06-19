@@ -17,7 +17,7 @@ const {
 } = require("../src/scheduler");
 const { getFacebookAPIByName } = require("../src/facebook");
 
-const TTL_SCHEDULE = 1000 * 60 * 60 * 24 * 10;
+const TTL_SCHEDULE = 1000 * 60 * 60 * 24 * 30; // 30 Ngày
 
 const extractLink = (text = "") => {
   let s = String(text ?? "");
@@ -64,7 +64,7 @@ module.exports = async (req, res) => {
     contentType,
     link,
   } = body;
-  
+
   const _flags = Array.isArray(flags) ? flags : [];
   const _tags = Array.isArray(tags) ? tags : [];
   const _topics = Array.isArray(topics) ? topics : [];
@@ -90,6 +90,16 @@ module.exports = async (req, res) => {
     // -----------------------------
     if (hasMedia) {
       const hash = "media_viral_post_" + page + "_" + Date.now();
+
+      const now = Date.now();
+      const scheduleAt = scheduleOn
+        ? await computeViralScheduleAt({ pageId: itemPage.pageId })
+        : now;
+
+      if (scheduleAt > now + TTL_SCHEDULE) {
+        throw new Error("Schedule exceeds TTL");
+      }
+
       const item = {
         snippet: text || defaultTitle || "",
         pipeline,
@@ -121,6 +131,7 @@ module.exports = async (req, res) => {
             error: "",
             modeSocial,
             schedule: scheduleOn,
+            scheduledTime: scheduleAt,
             createdAt: new Date().toISOString(),
           },
         ],
@@ -130,21 +141,12 @@ module.exports = async (req, res) => {
         batchId: "batch_" + hash,
       };
 
-      const now = Date.now();
-      const scheduleAt = scheduleOn
-        ? await computeViralScheduleAt({ pageId: itemPage.pageId })
-        : now;
-
-      if (scheduleAt > now + TTL_SCHEDULE) {
-        throw new Error("Schedule exceeds TTL");
-      }
-
       await socialStore.push(item);
 
       const r = await socialQueue.push({
         itemId: hash,
         page,
-        scheduleAt,
+        scheduleAt: now,
       });
 
       await commitViralSchedule(itemPage.pageId, scheduleAt);

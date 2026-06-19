@@ -353,7 +353,11 @@ function buildViralMessage(item = {}, tags = []) {
   };
 }
 
-async function handleViralPost({ item, payload }) {
+async function handleViralPost({ item, payload, scheduledAt }) {
+  if (!scheduledAt) {
+    throw new Error("scheduledAt is required");
+  }
+
   const media = [
     ...(item.videos || []).map((v) => ["video", v]),
     ...(item.images?.length > 1
@@ -362,28 +366,19 @@ async function handleViralPost({ item, payload }) {
         ? [["image", item.images[0]]]
         : []),
   ];
-  let current = Math.floor(Date.now() / 1000) + 600;
+
+  let scheduledTime = Math.floor(scheduledAt / 1000);
 
   const results = [];
-  let isFirst = true; // 🔥 thêm flag
   for (const [type, data] of media) {
-    let scheduledTime = null;
-
-    if (!isFirst) {
-      current += 600 + (60 + Math.floor(Math.random() * 240)); // 10p + random
-      scheduledTime = current;
-    }
+    scheduledTime += 1200 + (60 + Math.floor(Math.random() * 240)); // 10p + random
 
     try {
       let created = null;
-      const commonParams = isFirst
-        ? {
-            published: true, // 🔥 đăng ngay
-          }
-        : {
-            published: false,
-            scheduled_publish_time: scheduledTime,
-          };
+      const commonParams = {
+        published: false,
+        scheduled_publish_time: scheduledTime,
+      };
       if (type === "video") {
         created = await graphFaceBookAPIPost(
           `/${payload.pageId}/videos`,
@@ -459,7 +454,6 @@ async function handleViralPost({ item, payload }) {
         error: String(err?.message || err),
       });
     }
-    isFirst = false; // 🔥 nhớ set sau mỗi vòng
   }
 
   return results;
@@ -533,6 +527,7 @@ async function sendFaceBookPost(item, opts = {}) {
             page: wantPage,
             tags: pagesArr[idx]?.tags || [],
             topic: pagesArr[idx]?.topic,
+            scheduledTime: pagesArr[idx]?.scheduledTime,
           },
         ];
       })()
@@ -549,6 +544,7 @@ async function sendFaceBookPost(item, opts = {}) {
           page: toStr(p?.page),
           tags: p?.tags,
           topic: p?.topic,
+          scheduledTime: pagesArr[idx]?.scheduledTime,
         }));
 
   if (pending.length === 0) {
@@ -560,7 +556,14 @@ async function sendFaceBookPost(item, opts = {}) {
   }
 
   const results = [];
-  for (const { index, requestChatId, page, tags, topic } of pending) {
+  for (const {
+    index,
+    requestChatId,
+    page,
+    tags,
+    topic,
+    scheduledTime,
+  } of pending) {
     try {
       const target = await getFacebookAPIByName(page);
       if (!target) {
@@ -577,7 +580,12 @@ async function sendFaceBookPost(item, opts = {}) {
       let created = null;
 
       if (item?.pipeline === "viral") {
-        created = await handleViralPost({ item, payload, published });
+        created = await handleViralPost({
+          item,
+          payload,
+          published,
+          scheduledAt: scheduledTime,
+        });
       } else {
         created = await handleTrafficPost({ item, payload, published });
       }
