@@ -39,6 +39,7 @@ const getPageName = async (flags = [], defaultPage = "", defaultTitle = "") => {
   if (!pageNames.length) return defaultPage;
   const pages = await getManyPages({
     name: { $in: pageNames },
+    status: "Active"
   });
 
   if (!pages.length) return { page: defaultPage, defaultTitle };
