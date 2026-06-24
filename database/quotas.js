@@ -2,8 +2,8 @@ const { getDb } = require("./mongodb");
 const { getDayKeyAndTtlSec } = require("../helper/timeZone");
 const { extractOriginFromSubdomain } = require("../helper/extractOrigin");
 
-const ORIGIN_LIMIT_DEFAULT = 300;
-const SUBDOMAIN_LIMIT_DEFAULT = 40;
+const ORIGIN_LIMIT_DEFAULT = 5000;
+const SUBDOMAIN_LIMIT_DEFAULT = 500;
 // ===== Helpers =====
 
 function getDateKey() {
