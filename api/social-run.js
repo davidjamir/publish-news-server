@@ -19,17 +19,10 @@ module.exports = async (req, res) => {
     return res.status(401).json({ ok: false, error: "Unauthorized" });
   }
 
-  const max = MAX_PER_RUN;
   console.log("Cloudflare Cron Job Trigger Worker Run Social", isoTimeZone());
   try {
-    if (!Number.isInteger(max) || max < 1 || max > 50) {
-      return res
-        .status(400)
-        .json({ ok: false, error: "max must be an integer 1..50" });
-    }
-
     const results = [];
-    for (let i = 0; i < max; i++) {
+    for (let i = 0; i < MAX_PER_RUN; i++) {
       const doc = await socialQueue.pop({ scheduleAt: { $lte: Date.now() } });
       if (!doc) break;
 

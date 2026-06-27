@@ -306,7 +306,9 @@ async function graphFaceBookAPIPost(path, token, params) {
   const data = await r.json().catch(() => ({}));
   if (!r.ok) {
     const msg = data?.error?.message || JSON.stringify(data);
-    throw new Error(`Facebook API error: ${msg}`);
+    throw Object.assign(new Error(`Facebook API error: ${msg}`), {
+      fbError: error,
+    });
   }
   return data;
 }
@@ -452,6 +454,7 @@ async function handleViralPost({ item, payload, scheduledAt }) {
         ok: false,
         data,
         error: String(err?.message || err),
+        fbError: err,
       });
     }
   }
@@ -501,6 +504,7 @@ async function handleTrafficPost({ payload, published }) {
         type,
         ok: false,
         error: String(err?.message || err),
+        fbError: err,
       },
     ];
   }
@@ -595,12 +599,12 @@ async function sendFaceBookPost(item, opts = {}) {
       }
       const success = created.filter((r) => r.ok);
       if (!success.length) {
-        const errors = created
-          .filter((r) => !r.ok)
-          .map((r) => r.error)
-          .join(" | ");
+        const failed = created.filter((r) => !r.ok);
+        const errors = failed.map((r) => r.error).join(" | ");
 
-        throw new Error(`ALL_POST_FAILED: ${errors}`);
+        throw Object.assign(new Error(`ALL_POST_FAILED: ${errors}`), {
+          fbErrors: failed,
+        });
       }
       // ưu tiên post có thể comment
       const commentTarget = success.find(
@@ -626,6 +630,7 @@ async function sendFaceBookPost(item, opts = {}) {
 
       try {
         if (canComment) {
+          await sleep(1000);
           commentRes = await sendFaceBookComment({
             postId: commentTarget.postId,
             pageToken: payload.pageToken,
@@ -662,6 +667,7 @@ async function sendFaceBookPost(item, opts = {}) {
         status: "failed",
         updatedAt: isoTimeZone(),
         error: msg,
+        fbErrors: err?.fbErrors,
       };
 
       results.push({
@@ -672,7 +678,7 @@ async function sendFaceBookPost(item, opts = {}) {
         error: msg,
       });
     }
-    await new Promise((r) => setTimeout(r, 500 + Math.random() * 500));
+    await new Promise((r) => setTimeout(r, 1000 + Math.random() * 500));
   }
 
   const allDone = (item.pages || []).every((p) => p?.status === "done");
