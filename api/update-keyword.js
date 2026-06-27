@@ -1,5 +1,6 @@
 const { isAuthorized } = require("../helper/isAuthorized");
 const { getManyTags, updateOneTag } = require("../database/tags");
+const { blacklistKeywordTag, whitelistKeywordTag } = require("../constants");
 
 const MAX_PER_RUN = 20;
 
@@ -21,9 +22,26 @@ const updateKeyword = async (tag) => {
 
   const suggestions = data?.[1] || [];
 
+  const validKeywords = suggestions.filter((keyword) => {
+    const text = keyword.toLowerCase();
+
+    if (blacklistKeywordTag.some((b) => text.includes(b))) {
+      return false;
+    }
+
+    if (
+      whitelistKeywordTag.length > 0 &&
+      !whitelistKeywordTag.some((w) => text.includes(w))
+    ) {
+      return false;
+    }
+
+    return true;
+  });
+
   await updateOneTag(
     { name: tag.name },
-    { keywords: suggestions, lastKeywordUpdate: Date.now() },
+    { keywords: validKeywords, lastKeywordUpdate: Date.now() },
   );
 
   console.log("Update keywords of tag: ", tag.name);

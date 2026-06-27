@@ -1,4 +1,3 @@
-
 export const commentTemplates = [
   "🔎 Full story here:",
   "📖 Read the complete version here:",
@@ -173,3 +172,141 @@ export const softCTAs = [
   "Would you have done the same?",
   "What’s missing from this story?",
 ];
+
+export const blacklistKeywordTag = [
+  // Adult
+  "porn",
+  "porno",
+  "sex",
+  "xxx",
+  "nude",
+  "naked",
+  "onlyfans",
+  "hentai",
+  "milf",
+  "escort",
+  "camgirl",
+  "cam sex",
+  "blowjob",
+  "handjob",
+  "anal",
+  "bdsm",
+  "fetish",
+  "masturbation",
+  "hookup",
+  "dating sex",
+  "sexy",
+  "hot girl",
+  "hot girls",
+  "leaked",
+  "leak",
+  "private video",
+
+  // Underage
+  "underage",
+  "teen sex",
+  "child porn",
+  "lolita",
+
+  // Gambling
+  "casino",
+  "bet",
+  "betting",
+  "sports betting",
+  "odds",
+  "gambling",
+  "poker",
+  "blackjack",
+  "roulette",
+  "slot",
+  "slots",
+  "bookmaker",
+
+  // Drugs
+  "drug",
+  "drugs",
+  "cocaine",
+  "heroin",
+  "meth",
+  "marijuana",
+  "weed",
+  "lsd",
+  "ecstasy",
+
+  // Violence
+  "kill",
+  "murder",
+  "suicide",
+  "self harm",
+  "gore",
+  "torture",
+  "beheading",
+  "execution",
+  "mass shooting",
+
+  // Weapons
+  "gun",
+  "rifle",
+  "pistol",
+  "weapon",
+  "bomb",
+  "explosive",
+  "grenade",
+  "ammo",
+  "ammunition",
+
+  // Illegal
+  "hack",
+  "hacker",
+  "crack",
+  "keygen",
+  "carding",
+  "phishing",
+  "stolen account",
+  "free account",
+  "account generator",
+
+  // Piracy
+  "torrent",
+  "warez",
+  "serial key",
+  "license key",
+  "cracked",
+  "nulled",
+  "mod apk",
+  "apk mod",
+  "premium apk",
+
+  // Terrorism
+  "terrorist",
+  "terrorism",
+  "isis",
+  "al qaeda",
+  "extremist",
+
+  // Spam SEO
+  "download free",
+  "free download",
+  "watch free",
+  "stream free",
+  "watch online free",
+
+  // Crypto scam
+  "airdrop",
+  "free bitcoin",
+  "free crypto",
+  "crypto signal",
+  "pump signal",
+
+  // Fake generators
+  "generator",
+  "cheat",
+  "unlimited money",
+  "unlimited coins",
+  "mod menu",
+
+  //Undefinited
+  "stadium",
+];
+
+export const whitelistKeywordTag = [];
