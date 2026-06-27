@@ -2,7 +2,7 @@ const { isAuthorized } = require("../helper/isAuthorized");
 const { getManyTags, updateOneTag } = require("../database/tags");
 const { blacklistKeywordTag, whitelistKeywordTag } = require("../constants");
 
-const MAX_PER_RUN = 20;
+const MAX_PER_RUN = 30;
 
 const updateKeyword = async (tag) => {
   const url =
@@ -41,7 +41,11 @@ const updateKeyword = async (tag) => {
 
   await updateOneTag(
     { name: tag.name },
-    { keywords: validKeywords, lastKeywordUpdate: Date.now() },
+    {
+      keywords: validKeywords,
+      lastKeywordUpdate: Date.now(),
+      updatedAt: new Date(),
+    },
   );
 
   console.log("Update keywords of tag: ", tag.name);
