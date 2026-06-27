@@ -2,7 +2,7 @@ const { isAuthorized } = require("../helper/isAuthorized");
 const { getManyTags, updateOneTag } = require("../database/tags");
 const { blacklistKeywordTag, whitelistKeywordTag } = require("../constants");
 
-const MAX_PER_RUN = 30;
+const MAX_PER_RUN = 20;
 
 const updateKeyword = async (tag) => {
   const url =
@@ -66,7 +66,7 @@ module.exports = async (req, res) => {
   try {
     const tags = await getManyTags(
       {
-        lastKeywordUpdate: { $lt: Date.now() - 1000 * 60 * 60 * 8 },
+        lastKeywordUpdate: { $lt: Date.now() - 1000 * 60 * 60 * 3 },   // Auto completed each 3 hours per times
       },
       MAX_PER_RUN,
     );

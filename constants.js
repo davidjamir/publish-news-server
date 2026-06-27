@@ -307,6 +307,20 @@ export const blacklistKeywordTag = [
 
   //Undefinited
   "stadium",
+  "arena",
+  "ticket",
+  "tickets",
+  "logo",
+  "buy",
+  "shop",
+  "sale",
+  "price",
+  "prices",
+  "merch",
+  "hat",
+  "jersey",
+  "shirt",
+  "hoodie",
 ];
 
 export const whitelistKeywordTag = [];
