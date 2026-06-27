@@ -9,8 +9,9 @@ const MAX_PER_RUN = 2;
 
 // xử lý 1 item riêng biệt
 async function processItem(doc) {
-  const base = {
+  let base = {
     newsId: doc.itemId,
+    site: "Undefined",
   };
 
   try {
@@ -18,6 +19,16 @@ async function processItem(doc) {
 
     if (!newsItem) throw new Error("newsItem missing/expired");
     if (!newsItem.featuredImage) throw new Error("missing featured image");
+
+    base = {
+      ...base,
+      title: newsItem.title,
+      link: newsItem.link,
+      topic: newsItem?.topics?.[0] || "",
+      targets: newsItem.targets || [],
+      chatName: newsItem.chatName,
+      chatId: newsItem.chatId,
+    };
 
     const result = await sendPost(newsItem);
 
@@ -29,10 +40,6 @@ async function processItem(doc) {
 
     return {
       ...base,
-      title: newsItem.title,
-      link: newsItem.link,
-      topic: newsItem?.topics?.[0] || "",
-      targets: newsItem.targets || [],
       status: result.ok ? "success" : "failed",
       error: result.error,
       site: result.blogDns,
@@ -91,6 +98,9 @@ module.exports = async (req, res) => {
         .map((item) =>
           sendNotify({
             type: "post-sites",
+            site: item.site,
+            chatName: item.chatName,
+            chatId: item.chatId,
             topic: item.topic,
             title: item.title,
             status: item.status,
