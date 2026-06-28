@@ -81,50 +81,9 @@ async function getFacebookAPIByName(pageName) {
   };
 }
 
-function buildTrackingLink(link) {
-  if (Math.random() < 0.5) return link;
-  const randomId = (len = 5) =>
-    Math.random()
-      .toString(36)
-      .substring(2, 2 + len);
-
-  const ts = Date.now();
-
-  const variants = [
-    "fb=1",
-    "ref=fb",
-    "ref=facebook",
-    "source=fb",
-    "source=facebook",
-    "src=facebook",
-    "from=facebook",
-    "via=facebook",
-    "traffic=facebook",
-    "channel=facebook",
-
-    "utm_source=facebook",
-    "utm_source=fb",
-    "utm_medium=social",
-    "utm_medium=organic",
-    "utm_medium=referral",
-    "utm_campaign=fb_post",
-    "utm_campaign=social_traffic",
-    "utm_campaign=organic_reach",
-    "utm_term=facebook",
-    "utm_content=fb_link",
-
-    `fbid=${randomId(6)}`,
-    `post=${randomId(5)}`,
-    `track=${randomId(4)}`,
-    `refid=${randomId(5)}`,
-    `src_id=${randomId(6)}`,
-    `campaign=${randomId(5)}`,
-  ];
-
-  const pick = variants[Math.floor(Math.random() * variants.length)];
-  const sep = link.includes("?") ? "&" : "?";
-
-  return link + sep + pick;
+function buildTrackingLink(link, tracking = "") {
+  const sep = tracking ? (link.includes("?") ? "&" : "?") : "";
+  return link + sep + tracking;
 }
 
 function splitText(text) {
