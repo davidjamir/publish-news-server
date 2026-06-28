@@ -56,7 +56,7 @@ async function getFacebookAPIByName(pageName) {
   const want = toStr(pageName);
   if (!want) throw new Error("getFacebookTargetByName: pageName is required");
 
-  let found = await getOnePage({ name: want });
+  let found = await getOnePage({ name: want, status: "Active" });
   if (!found) {
     throw new Error(
       `getFacebookTargetByName: page not found for name="${pageName}"`,
