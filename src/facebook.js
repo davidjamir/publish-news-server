@@ -449,7 +449,7 @@ async function handleViralPost({ item, payload, scheduledAt }) {
         ok: false,
         data,
         error: String(err?.message || err),
-        fbError: err,
+        fbError: err?.fbError,
       });
     }
   }
@@ -499,7 +499,7 @@ async function handleTrafficPost({ payload, published }) {
         type,
         ok: false,
         error: String(err?.message || err),
-        fbError: err,
+        fbError: err?.fbError,
       },
     ];
   }
