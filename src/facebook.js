@@ -307,7 +307,7 @@ async function graphFaceBookAPIPost(path, token, params) {
   if (!r.ok) {
     const msg = data?.error?.message || JSON.stringify(data);
     throw Object.assign(new Error(`Facebook API error: ${msg}`), {
-      fbError: error,
+      fbError: data?.error,
     });
   }
   return data;
