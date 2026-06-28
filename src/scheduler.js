@@ -131,7 +131,7 @@ async function commitScheduleForPage(pageId, scheduleAtMs) {
 }
 
 async function getLastScheduledViralAt(pageId) {
-  const page = await getOnePage({ pageId });
+  const page = await getOnePage({ pageId, status: "Active" });
   const n = Number(page?.lastScheduledViralAt || 0);
   return Number.isFinite(n) && n > 0 ? n : null;
 }
