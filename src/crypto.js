@@ -27,4 +27,12 @@ function buildHashItemId(chatId = "", item = {}) {
     .digest("hex");
 }
 
-module.exports = { buildHashBatchId, buildHashItemId };
+export function buildHashShortCode(url = "", secret = "", length = 12) {
+  return crypto
+    .createHash("sha256")
+    .update(secret + url)
+    .digest("base64url")
+    .slice(0, length);
+}
+
+module.exports = { buildHashBatchId, buildHashItemId, buildHashShortCode };

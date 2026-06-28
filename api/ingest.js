@@ -1,10 +1,11 @@
 // api/news-ingest.js
-const { isAuthorized, isWrapLink } = require("../helper/isAuthorized");
+const { isAuthorized, isShortLink } = require("../helper/isAuthorized");
 const { buildHashBatchId, buildHashItemId } = require("../src/crypto");
 const { toStr } = require("../helper/toString");
 const { getOneBlog } = require("../database/blogs");
 const { insertManyTags } = require("../database/tags");
 const { crawlQueue } = require("../src/queue");
+const { buildShortLink } = require("../src/shortLink");
 
 const {
   batchStore,
@@ -145,13 +146,15 @@ module.exports = async (req, res) => {
 
     for (const item of payload.items) {
       if (item.type === "social") {
-        if (isWrapLink()) {
+        if (isShortLink()) {
           const url = new URL(item.link);
           const blog = await getOneBlog({ blogDns: url.host });
           if (!blog) continue;
 
-          item.wrapLink =
-            `https://${blog.wrapDomain}` + url.pathname + url.search;
+          item.shortLink = await buildShortLink(
+            `https://${blog.wrapDomain}`,
+            item.link,
+          );
         }
 
         const { isNew } = await socialStore.push(item);

@@ -24,7 +24,7 @@ function isPassword(req) {
   return password && password === ADMIN_PASSWORD;
 }
 
-function isWrapLink() {
-  return String(process.env.REQUIRE_WRAP_LINK || "").toLowerCase() === "true";
+function isShortLink() {
+  return String(process.env.REQUIRE_SHORT_LINK || "").toLowerCase() === "true";
 }
-module.exports = { isAuthorized, isPassword, isWrapLink };
+module.exports = { isAuthorized, isPassword, isShortLink };
