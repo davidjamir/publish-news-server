@@ -119,11 +119,6 @@ function buildTrackingLink(link) {
     `refid=${randomId(5)}`,
     `src_id=${randomId(6)}`,
     `campaign=${randomId(5)}`,
-
-    `t=${ts}`,
-    `ts=${ts}`,
-    `time=${ts}`,
-    `v=${Math.floor(ts / 1000)}`,
   ];
 
   const pick = variants[Math.floor(Math.random() * variants.length)];
@@ -220,7 +215,7 @@ function buildFaceBookPost(item = {}, tags = []) {
   const title = toStr(item?.title);
   const crawlSnippet = toStr(item?.crawlSnippet);
   const snippet = toStr(item?.snippet);
-  const link = toStr(item?.wrapLink || item?.link);
+  const link = toStr(item?.shortLink || item?.wrapLink || item?.link);
   const imageUrl = toStr(item?.featuredImage);
   const cleanTags = normalizeTags(tags);
   const hashtags = pickRandomTagsWithVariance(cleanTags) || [];
@@ -271,7 +266,7 @@ function buildFaceBookPost(item = {}, tags = []) {
   }
 
   if (hashtags.length) {
-    const spacingModes = ["\n", "\n\n", "\n\n\n", " ", "\n👉 "];
+    const spacingModes = ["\n", "\n\n", "\n\n\n", " ", " 👇"];
 
     parts.push(spacingModes[Math.floor(Math.random() * spacingModes.length)]);
     parts.push(hashtags.join(" "));
