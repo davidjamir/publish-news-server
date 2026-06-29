@@ -1,3 +1,4 @@
+import { slugify } from "transliteration";
 const { isAuthorized } = require("../helper/isAuthorized");
 const { getManyTags, updateOneTag } = require("../database/tags");
 const { blacklistKeywordTag, whitelistKeywordTag } = require("../constants");
@@ -19,25 +20,29 @@ const updateKeyword = async (tag) => {
   }
 
   const data = await res.json();
-
   const suggestions = data?.[1] || [];
 
-  const validKeywords = suggestions.filter((keyword) => {
-    const text = keyword.toLowerCase();
+  const validKeywords = suggestions
+    .map((keyword) =>
+      slugify(keyword, {
+        lowercase: true,
+        separator: " ",
+      }),
+    )
+    .filter((keyword) => {
+      if (blacklistKeywordTag.some((b) => keyword.includes(b))) {
+        return false;
+      }
 
-    if (blacklistKeywordTag.some((b) => text.includes(b))) {
-      return false;
-    }
+      if (
+        whitelistKeywordTag.length > 0 &&
+        !whitelistKeywordTag.some((w) => keyword.includes(w))
+      ) {
+        return false;
+      }
 
-    if (
-      whitelistKeywordTag.length > 0 &&
-      !whitelistKeywordTag.some((w) => text.includes(w))
-    ) {
-      return false;
-    }
-
-    return true;
-  });
+      return true;
+    });
 
   await updateOneTag(
     { name: tag.name },
@@ -66,7 +71,7 @@ module.exports = async (req, res) => {
   try {
     const tags = await getManyTags(
       {
-        lastKeywordUpdate: { $lt: Date.now() - 1000 * 60 * 60 * 3 },   // Auto completed each 3 hours per times
+        lastKeywordUpdate: { $lt: Date.now() - 1000 * 60 * 60 * 3 }, // Auto completed each 3 hours per times
       },
       MAX_PER_RUN,
     );

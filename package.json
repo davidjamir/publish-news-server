@@ -14,6 +14,7 @@
     "cheerio": "^1.1.0",
     "crypto": "^1.0.1",
     "mongodb": "^6.21.0",
-    "nodemailer": "^7.0.12"
+    "nodemailer": "^7.0.12",
+    "transliteration": "^2.6.1"
   }
 }
