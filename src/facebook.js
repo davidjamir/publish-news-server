@@ -423,20 +423,6 @@ async function handleTrafficPost({ payload, published }) {
     if (toStr(payload.imageUrl)) {
       type = "image";
 
-      // Warm image cache before Facebook upload request.
-      const res = await fetch(payload.imageUrl, {
-        headers: {
-          "User-Agent": "Mozilla/5.0",
-          "Cache-Control": "no-cache",
-        },
-      });
-      if (!res.ok) throw new Error("Image warm failed");
-
-      await res.arrayBuffer();
-      await new Promise((r) => setTimeout(r, 1500));
-
-      // End warm
-
       created = await graphFaceBookAPIPost(
         `/${payload.pageId}/photos`,
         payload.pageToken,
