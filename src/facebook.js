@@ -112,7 +112,10 @@ function generateCTA(link) {
       `${cta} — ${buildTrackingLink(link)}`,
     ];
 
-    return formats[Math.floor(Math.random() * formats.length)];
+    return {
+      ctaText: formats[Math.floor(Math.random() * formats.length)],
+      hasLink: true,
+    };
   }
 
   const cta =
@@ -120,7 +123,10 @@ function generateCTA(link) {
 
   const emphasis = ["", " 👇", " ⬇️", " — see below"];
 
-  return cta + emphasis[Math.floor(Math.random() * emphasis.length)];
+  return {
+    ctaText: cta + emphasis[Math.floor(Math.random() * emphasis.length)],
+    hasLink: false,
+  };
 }
 
 function normalizeTags(tags = []) {
@@ -194,7 +200,6 @@ function buildFaceBookPost(item = {}, tags = []) {
     mode = "soft"; // 10% CTA mềm (không link)
   } else {
     mode = "normal"; // 80% bình thường
-    hasLinkInCaption = true;
   }
 
   const positionType = Math.random();
@@ -208,12 +213,13 @@ function buildFaceBookPost(item = {}, tags = []) {
     parts.push(mainText);
     parts.push(soft);
   } else {
-    const ctaText = generateCTA(link);
+    const { ctaText, hasLink } = generateCTA(link);
+    hasLinkInCaption = hasLink;
     if (positionType < 0.3) {
       // 🔥 CTA ở đầu
       parts.push(ctaText);
       parts.push(mainText);
-    } else if (positionType < 0.5 && ctaText?.includes("https://")) {
+    } else if (positionType < 0.5 && hasLink) {
       // 🔥 CTA ở giữa
       const [firstHalf, secondHalf] = splitText(mainText);
       parts.push(firstHalf);
