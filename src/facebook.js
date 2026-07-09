@@ -225,7 +225,7 @@ function buildFaceBookPost(item = {}, tags = []) {
   }
 
   if (hashtags.length) {
-    const spacingModes = ["\n", "\n\n", "\n\n\n", " ", " 👇"];
+    const spacingModes = ["\n", "\n\n", "\n\n\n"];
 
     parts.push(spacingModes[Math.floor(Math.random() * spacingModes.length)]);
     parts.push(hashtags.join(" "));
@@ -299,7 +299,7 @@ function buildViralMessage(item = {}, tags = []) {
 
   // hashtags nhẹ, không spam
   if (hashtags.length) {
-    const spacingModes = ["\n", "\n\n", " "];
+    const spacingModes = ["\n", "\n\n", "\n\n\n"];
     parts.push(spacingModes[Math.floor(Math.random() * spacingModes.length)]);
     parts.push(hashtags.join(" "));
   }
