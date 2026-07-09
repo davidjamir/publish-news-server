@@ -178,6 +178,7 @@ function buildFaceBookPost(item = {}, tags = []) {
   const imageUrl = toStr(item?.featuredImage);
   const cleanTags = normalizeTags(tags);
   const hashtags = pickRandomTagsWithVariance(cleanTags) || [];
+  let hasLinkInCaption = false;
 
   const main =
     crawlSnippet.length > 100
@@ -193,6 +194,7 @@ function buildFaceBookPost(item = {}, tags = []) {
     mode = "soft"; // 10% CTA mềm (không link)
   } else {
     mode = "normal"; // 80% bình thường
+    hasLinkInCaption = true;
   }
 
   const positionType = Math.random();
@@ -235,6 +237,7 @@ function buildFaceBookPost(item = {}, tags = []) {
     message: parts.filter(Boolean).join("\n"),
     link,
     imageUrl,
+    hasLinkInCaption,
   };
 }
 
@@ -306,6 +309,7 @@ function buildViralMessage(item = {}, tags = []) {
 
   return {
     message: parts.filter(Boolean).join("\n"),
+    hasLinkInCaption: false,
   };
 }
 
@@ -553,7 +557,7 @@ async function sendFaceBookPost(item, opts = {}) {
         throw new Error("NO_MEDIA_TO_POST");
       }
       const success = created.filter((r) => r.ok);
-      if (!success.length) {
+      if (success.length === 0) {
         const failed = created.filter((r) => !r.ok);
         const errors = failed.map((r) => r.error).join(" | ");
 
@@ -561,14 +565,6 @@ async function sendFaceBookPost(item, opts = {}) {
           fbErrors: failed,
         });
       }
-      // ưu tiên post có thể comment
-      const commentTarget = success.find(
-        (r) =>
-          r.postId &&
-          (r.type === "image" || r.type === "album" || r.type === "link"),
-      );
-
-      const postId = toStr(commentTarget?.postId);
 
       await updateOnePage(
         { pageId: payload.pageId },
@@ -578,23 +574,37 @@ async function sendFaceBookPost(item, opts = {}) {
         },
       );
 
-      let commentRes = null;
-      const hasLinkInCaption = payload.message.includes("https://");
-      const link = toStr(payload.link);
-      const canComment = link && !hasLinkInCaption && commentTarget?.postId;
+      // ưu tiên post có thể comment
+      const commentTarget = success.find(
+        (r) => r?.postId && ["image", "album", "link"].includes(r.type),
+      );
 
-      try {
-        if (canComment) {
-          await sleep(1000);
-          commentRes = await sendFaceBookComment({
-            postId: commentTarget.postId,
-            pageToken: payload.pageToken,
-            message: `${commentTemplates[Math.floor(Math.random() * commentTemplates.length)]} ${link}`,
-          });
+      const postId = toStr(commentTarget?.postId);
+
+      let commentRes = null;
+      const hasLinkInCaption = payload.hasLinkInCaption;
+      const link = toStr(payload?.link);
+      const canComment = link && !hasLinkInCaption && postId;
+
+      if (canComment) {
+        for (let i = 0; i < 3; i++) {
+          try {
+            commentRes = await sendFaceBookComment({
+              postId: postId,
+              pageToken: payload.pageToken,
+              message: `${commentTemplates[Math.floor(Math.random() * commentTemplates.length)]} ${link}`,
+            });
+
+            break;
+          } catch (e) {
+            console.log("Error with by comment in Publish item: ", item?.title);
+            commentRes = { ok: false, error: String(e?.message || e) };
+
+            if (i < 2) {
+              await delay(3000);
+            }
+          }
         }
-      } catch (e) {
-        console.log("Error with by comment in Publish item: ", item?.title);
-        commentRes = { ok: false, error: String(e?.message || e) };
       }
 
       const hasFail = created.some((r) => !r.ok);
@@ -603,6 +613,8 @@ async function sendFaceBookPost(item, opts = {}) {
         status: hasFail ? "partial" : "done",
         postIds: success.map((r) => r.postId).filter(Boolean),
         updatedAt: isoTimeZone(),
+        hasLinkInCaption,
+        comment: commentRes,
       };
 
       results.push({
