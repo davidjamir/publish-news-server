@@ -454,11 +454,11 @@ async function handleTrafficPost({ payload, published }) {
         payload.pageToken,
         {
           message: payload.message,
-          attached_media: [
+          attached_media: JSON.stringify([
             {
               media_fbid: photoId.id,
             },
-          ],
+          ]),
           published,
         },
       );
