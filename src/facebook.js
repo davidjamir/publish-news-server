@@ -12,6 +12,8 @@ const {
 
 const FB_GRAPH_BASE = `https://graph.facebook.com/v25.0`;
 
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 function clampText(s, max = 800) {
   s = toStr(s).replace(/\s+/g, " ").trim();
   if (!s) return "";
