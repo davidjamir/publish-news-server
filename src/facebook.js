@@ -433,12 +433,30 @@ async function handleTrafficPost({ payload, published }) {
     if (toStr(payload.imageUrl)) {
       type = "image";
 
-      created = await graphFaceBookAPIPost(
+      const photoId = await graphFaceBookAPIPost(
         `/${payload.pageId}/photos`,
         payload.pageToken,
         {
           url: payload.imageUrl,
-          caption: payload.message,
+          published: false,
+        },
+      );
+
+      if (!photoId?.id) {
+        throw new Error(`Failed to upload photo: ${JSON.stringify(photoId)}`);
+      }
+
+      await delay(1000);
+      created = await graphFaceBookAPIPost(
+        `/${payload.pageId}/feed`,
+        payload.pageToken,
+        {
+          message: payload.message,
+          attached_media: [
+            {
+              media_fbid: photoId.id,
+            },
+          ],
           published,
         },
       );
