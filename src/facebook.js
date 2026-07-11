@@ -235,9 +235,9 @@ function buildFaceBookPost(item = {}, tags = []) {
   }
 
   if (hashtags.length) {
-    const spacingModes = ["\n", "\n\n", "\n\n\n"];
+    // const spacingModes = ["\n", "\n\n", "\n\n\n"];
 
-    parts.push(spacingModes[Math.floor(Math.random() * spacingModes.length)]);
+    // parts.push(spacingModes[Math.floor(Math.random() * spacingModes.length)]);
     parts.push(hashtags.join(" "));
   }
 
@@ -276,6 +276,34 @@ async function graphFaceBookAPIPost(path, token, params) {
     });
   }
   return data;
+}
+
+async function graphFaceBookAPIGet(endpoint, accessToken) {
+  try {
+    // 1. Kiểm tra để nối token bằng '?' hoặc '&' cho đúng cấu trúc URL
+    const separator = endpoint.includes("?") ? "&" : "?";
+    const url = `${FB_GRAPH_BASE}${endpoint}${separator}access_token=${accessToken}`;
+
+    // 2. Gọi fetch với method GET (Mặc định của fetch là GET nên không cần truyền method)
+    const response = await fetch(url);
+
+    // 3. Parse dữ liệu trả về dạng JSON
+    const data = await response.json();
+
+    // 4. Nếu Facebook trả về object error (Mã lỗi từ Meta)
+    if (!response.ok || data.error) {
+      console.error("Facebook API GET Error Details:", JSON.stringify(data));
+      throw new Error(
+        data.error?.message || `Facebook API trả về mã lỗi: ${response.status}`,
+      );
+    }
+
+    // 5. Trả về data sạch
+    return data;
+  } catch (error) {
+    console.error("Fetch Error:", error.message);
+    throw error;
+  }
 }
 
 async function sendFaceBookComment({ postId, pageToken, message }) {
@@ -366,7 +394,7 @@ async function handleViralPost({ item, payload, scheduledAt }) {
         for (const img of data) {
           try {
             const res = await graphFaceBookAPIPost(
-              `/${payload.pageId}/photos`,
+              `/${payload.pageId}/photos?fields=id`,
               payload.pageToken,
               { url: img, published: false },
             );
@@ -397,7 +425,7 @@ async function handleViralPost({ item, payload, scheduledAt }) {
 
       if (type === "image") {
         created = await graphFaceBookAPIPost(
-          `/${payload.pageId}/photos`,
+          `/${payload.pageId}/photos?fields=id`,
           payload.pageToken,
           {
             url: data,
@@ -436,7 +464,7 @@ async function handleTrafficPost({ payload, published }) {
       type = "image";
 
       const photoId = await graphFaceBookAPIPost(
-        `/${payload.pageId}/photos`,
+        `/${payload.pageId}/photos?fields=id`,
         payload.pageToken,
         {
           url: payload.imageUrl,
@@ -449,22 +477,52 @@ async function handleTrafficPost({ payload, published }) {
       }
 
       await delay(1000);
-      created = await graphFaceBookAPIPost(
-        `/${payload.pageId}/feed`,
-        payload.pageToken,
-        {
-          message: payload.message,
-          attached_media: JSON.stringify([
-            {
-              media_fbid: photoId.id,
-            },
-          ]),
-          published,
-        },
-      );
+      try {
+        created = await graphFaceBookAPIPost(
+          `/${payload.pageId}/feed?fields=id`,
+          payload.pageToken,
+          {
+            message: payload.message,
+            attached_media: JSON.stringify([
+              {
+                media_fbid: photoId.id,
+              },
+            ]),
+            published,
+          },
+        );
+      } catch (error) {
+        if (error.message.includes("Please reduce the amount of data")) {
+          // Handle the specific error case
+          await delay(3000);
+
+          const response = await graphFaceBookAPIGet(
+            `/${payload.pageId}/feed?limit=3&fields=id,message`,
+            payload.pageToken,
+          );
+
+          const posts = response?.data || [];
+          const sampleText = payload.message.slice(0, 40);
+
+          const matchedPost = posts.find(
+            (post) => post.message && post.message.startsWith(sampleText),
+          );
+
+          if (matchedPost) {
+            console.log("Tìm thấy bài viết rồi! ID:", matchedPost.id);
+            // Tiến hành comment thôi...
+            created = { id: matchedPost.id };
+          } else {
+            throw error;
+          }
+        } else {
+          // Nếu là lỗi khác (hết token, sai page id...) thì bắn lỗi ra ngoài luôn
+          throw error;
+        }
+      }
     } else {
       created = await graphFaceBookAPIPost(
-        `/${payload.pageId}/feed`,
+        `/${payload.pageId}/feed?fields=id`,
         payload.pageToken,
         {
           message: payload.message,
