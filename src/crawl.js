@@ -12,6 +12,7 @@ const {
 const MIN_DELAY_MS = 5 * 60 * 1000; // 5 phút
 const MAX_RETRY = 10;
 const TTL_SCHEDULE = 1000 * 60 * 60 * 24 * 10;
+const OG_FORMAT_SLUG = "og";
 
 function pickRandom(arr = []) {
   if (!Array.isArray(arr) || arr.length === 0) return null;
@@ -102,15 +103,38 @@ async function fetchContent(link, { endpoint, token } = {}) {
   };
 }
 
+// Setup with auto slug og template by frontend service manual
 async function fetchFeatureImageAuto(link) {
-  const servers = [...getServersCached("FEATURED_IMAGE_SERVER")];
-  const server = pickRandom(servers);
+  try {
+    const url = new URL(link);
 
-  return fetchFeatureImage(link, {
-    endpoint: server?.endpoint,
-    token: server?.token,
-  });
+    url.search = "";
+    url.hash = "";
+    url.pathname = url.pathname.replace(/\/+$/, "");
+    url.pathname += `/${OG_FORMAT_SLUG}`;
+
+    return {
+      featuredImage: url.toString(),
+      crawlSnippet: "Generated OG image URL from normalized source URL.",
+    };
+  } catch {
+    return {
+      featuredImage: null,
+      crawlSnippet: "Invalid source URL.",
+    };
+  }
 }
+
+// Fetch with server by crawl HTML
+// async function fetchFeatureImageAuto(link) {
+//   const servers = [...getServersCached("FEATURED_IMAGE_SERVER")];
+//   const server = pickRandom(servers);
+
+//   return fetchFeatureImage(link, {
+//     endpoint: server?.endpoint,
+//     token: server?.token,
+//   });
+// }
 
 async function fetchContentAuto(link) {
   const servers = [...getServersCached("CONTENT_SERVER")];
