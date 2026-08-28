@@ -12,7 +12,7 @@ const {
 const MIN_DELAY_MS = 5 * 60 * 1000; // 5 phút
 const MAX_RETRY = 10;
 const TTL_SCHEDULE = 1000 * 60 * 60 * 24 * 10;
-const OG_FORMAT_SLUG = "og";
+const OG_FORMAT_SLUG = "opengraph-image";
 
 function pickRandom(arr = []) {
   if (!Array.isArray(arr) || arr.length === 0) return null;
