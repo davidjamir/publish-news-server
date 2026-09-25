@@ -371,7 +371,11 @@ async function sendPost(item = {}) {
   let error2 = null;
   let error3 = null;
 
-  if (picked?.platform === "website") {
+  if (
+    picked?.platform === "cloudflare" ||
+    picked?.platform === "vercel" ||
+    picked?.platform === "vps"
+  ) {
     try {
       const result = await sendAdapter(
         {
@@ -397,7 +401,7 @@ async function sendPost(item = {}) {
       error1 = "[Adapter failed]: " + err.message;
       console.error("Adapter failed → ", err.message);
     }
-  } else {
+  } else if (picked?.platform === "google-blogger") {
     // ===== TRY API FIRST =====
     try {
       if (!picked?.blogId)
@@ -445,6 +449,8 @@ async function sendPost(item = {}) {
       error3 = "[Mail failed]: " + err.message;
       console.error("Mail failed → ", err.message);
     }
+  } else {
+    error1 = "Error by not valid platform: Current platform is null!"
   }
 
   const errorMessage = [error1, error2, error3].filter(Boolean).join(" | ");
